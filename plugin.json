@@ -1,0 +1,43 @@
+{
+    "id": "co.parabol.action",
+    "name": "Parabol",
+    "description": "Manage Parabol activities from Mattermost",
+    "homepage_url": "https://github.com/ParabolInc/parabol-mattermost-plugin",
+    "support_url": "https://github.com/ParabolInc/parabol-mattermost-plugin/issues",
+    "icon_path": "assets/parabol.svg",
+    "min_server_version": "6.2.1",
+    "server": {
+        "executables": {
+            "linux-amd64": "server/dist/plugin-linux-amd64",
+            "linux-arm64": "server/dist/plugin-linux-arm64",
+            "darwin-amd64": "server/dist/plugin-darwin-amd64",
+            "darwin-arm64": "server/dist/plugin-darwin-arm64",
+            "windows-amd64": "server/dist/plugin-windows-amd64.exe"
+        }
+    },
+    "webapp": {
+        "bundle_path": "webapp/dist/main.js"
+    },
+    "settings_schema": {
+        "header": "",
+        "footer": "",
+        "settings": [
+            {
+                "key": "ParabolURL",
+                "display_name": "Parabol URL",
+                "type": "text",
+                "help_text": "The URL of your Parabol instance",
+                "placeholder": "https://app.parabol.co",
+                "default": null
+            },
+            {
+                "key": "ParabolToken",
+                "display_name": "Parabol API Token",
+                "type": "text",
+                "help_text": "The API token for your Parabol instance",
+                "placeholder": "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx",
+                "default": null
+            }
+        ]
+    }
+}
