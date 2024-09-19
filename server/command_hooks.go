@@ -1,13 +1,9 @@
 package main
 
 import (
-	"context"
 	"fmt"
-	"net/http"
 	"strings"
-	"time"
 
-	"github.com/dadrus/httpsig"
 	"github.com/pkg/errors"
 
 	"github.com/mattermost/mattermost/server/public/model"
@@ -15,7 +11,7 @@ import (
 )
 
 const (
-	commandTriggerDialog            = "parabol"
+	commandTriggerDialog = "parabol"
 
 	dialogElementNameNumber = "somenumber"
 	dialogElementNameEmail  = "someemail"
@@ -26,7 +22,7 @@ const (
 
 	commandDialogHelp = "###### Interactive Parabol Slash Command Help\n" +
 		"- `/dialog` - Open an Interactive Dialog. Once submitted, user-entered input is posted back into a channel.\n" +
-		"- `/dialog no-elements` - Open an Interactive Dialog with no elements. Once submitted, user's action is posted back into a channel.\n" +
+		"- `/dialog start` - Open an Interactive Dialog with no elements. Once submitted, user's action is posted back into a channel.\n" +
 		"- `/dialog relative-callback-url` - Open an Interactive Dialog with relative callback URL. Once submitted, user's action is posted back into a channel.\n" +
 		"- `/dialog introduction-text` - Open an Interactive Dialog with optional introduction text. Once submitted, user's action is posted back into a channel.\n" +
 		"- `/dialog error` - Open an Interactive Dialog which always returns an general error.\n" +
@@ -51,8 +47,7 @@ func (p *Plugin) registerCommands() error {
 func getCommandDialogAutocompleteData() *model.AutocompleteData {
 	command := model.NewAutocompleteData(commandTriggerDialog, "", "Open an Interactive Dialog.")
 
-	noElements := model.NewAutocompleteData("foo-no-elements", "", "Open an Interactive Dialog with no elements.")
-	command.AddCommand(noElements)
+	command.AddCommand(model.NewAutocompleteData("start", "", "Start a Parabol Activity"))
 
 	relativeCallbackURL := model.NewAutocompleteData("relative-callback-url", "", "Open an Interactive Dialog with a relative callback url.")
 	command.AddCommand(relativeCallbackURL)
@@ -66,8 +61,7 @@ func getCommandDialogAutocompleteData() *model.AutocompleteData {
 	errorNoElements := model.NewAutocompleteData("error-no-elements", "", "Open an Interactive Dialog with error no elements.")
 	command.AddCommand(errorNoElements)
 
-	help := model.NewAutocompleteData("help", "", "")
-	command.AddCommand(help)
+	command.AddCommand(model.NewAutocompleteData("help", "", ""))
 
 	return command
 }
@@ -92,43 +86,6 @@ func (p *Plugin) ExecuteCommand(c *plugin.Context, args *model.CommandArgs) (*mo
 }
 
 func (p *Plugin) executeCommandDialog(args *model.CommandArgs) *model.CommandResponse {
-	serverConfig := p.API.GetConfig()
-
-	privKey := `...`
-	signer, err := httpsig.NewSigner(
-		// specify a key
-		httpsig.Key{KeyID: "key1", Key: privKey, Algorithm: httpsig.EcdsaP256Sha256},
-		// specify the required options
-		// duration for which the signature should be valid
-		httpsig.WithTTL(5 * time.Second),
-		// which components should be protected by a signature
-		httpsig.WithComponents("@authority", "@method", "x-my-fancy-header"),
-		// a tag for your specific application
-		httpsig.WithTag("myapp"),
-	)
-	// error handling goes here
-
-	// Create a request
-	req, err := http.NewRequestWithContext(context.Background(), "GET", "http://host.docker.internal:3001/mattermost", nil)
-	// error handling goes here
-
-	// Sign the request
-	header, err := signer.Sign(httpsig.MessageFromRequest(req))
-	// error handling goes here
-	client := &http.Client{}
-
-	// Add the signature to the request
-	req.Header = header
-
-	resp, err := client.Do(req)
-
-	if err != nil {
-		//log.Fatalln(err)
-		fmt.Print("GEORG", err)
-	} else {
-	        fmt.Print("GEORG", resp)
-	}
-
 	var dialogRequest model.OpenDialogRequest
 	fields := strings.Fields(args.Command)
 	command := ""
@@ -136,22 +93,25 @@ func (p *Plugin) executeCommandDialog(args *model.CommandArgs) *model.CommandRes
 		command = fields[1]
 	}
 
+	user, _ := p.API.GetUser(args.UserId)
+	fmt.Print("GEORG User", user.Email, user.EmailVerified)
+
 	switch command {
 	case "help":
 		return &model.CommandResponse{
 			ResponseType: model.CommandResponseTypeEphemeral,
 			Text:         commandDialogHelp,
 		}
-	case "":
+	case "start":
 		dialogRequest = model.OpenDialogRequest{
 			TriggerId: args.TriggerId,
-			URL:       fmt.Sprintf("%s/plugins/%s/dialog/1", *serverConfig.ServiceSettings.SiteURL, manifest.Id),
-			Dialog:    getDialogWithSampleElements(),
+			URL:       fmt.Sprintf("/plugins/%s/dialog/1", manifest.Id),
+			Dialog:    p.getStartActivityDialog(user.Email),
 		}
 	case "no-elements":
 		dialogRequest = model.OpenDialogRequest{
 			TriggerId: args.TriggerId,
-			URL:       fmt.Sprintf("%s/plugins/%s/dialog/2", *serverConfig.ServiceSettings.SiteURL, manifest.Id),
+			URL:       fmt.Sprintf("/plugins/%s/dialog/2", manifest.Id),
 			Dialog:    getDialogWithoutElements(dialogStateSome),
 		}
 	case "relative-callback-url":
@@ -163,7 +123,7 @@ func (p *Plugin) executeCommandDialog(args *model.CommandArgs) *model.CommandRes
 	case "introduction-text":
 		dialogRequest = model.OpenDialogRequest{
 			TriggerId: args.TriggerId,
-			URL:       fmt.Sprintf("%s/plugins/%s/dialog/1", *serverConfig.ServiceSettings.SiteURL, manifest.Id),
+			URL:       fmt.Sprintf("/plugins/%s/dialog/1", manifest.Id),
 			Dialog:    getDialogWithIntroductionText(dialogIntroductionText),
 		}
 	case "error":
@@ -194,6 +154,58 @@ func (p *Plugin) executeCommandDialog(args *model.CommandArgs) *model.CommandRes
 		}
 	}
 	return &model.CommandResponse{}
+}
+
+func (p *Plugin) getStartActivityDialog(email string) model.Dialog {
+	templates := p.queryMeetingTemplates(email)
+	if templates == nil {
+		fmt.Print("GEORG error retrieving templates")
+	}
+
+	iconURL, _ := p.API.GetFileLink("parabol.svg")
+	fmt.Print("GEORG iconURL", iconURL)
+
+	var teams []*model.PostActionOptions
+	for _, team := range templates.Teams {
+		teams = append(teams, &model.PostActionOptions{
+			Text:  team.Name,
+			Value: team.ID,
+		})
+	}
+	var activities []*model.PostActionOptions
+	for _, activity := range templates.AvailableTemplates {
+		activities = append(activities, &model.PostActionOptions{
+			Text:  activity.Name,
+			Value: activity.ID,
+		})
+	}
+
+	dialog := model.Dialog{
+		CallbackId: "startActivity",
+		Title:      "Start a Parabol Activity",
+		IconURL:    iconURL,
+		Elements: []model.DialogElement{
+			{
+				DisplayName: "Choose Parabol Team",
+				Name:        "team",
+				Type:        "select",
+				Placeholder: "Select a Team...",
+				Default:     "opt1",
+				Options:     teams,
+			}, {
+				DisplayName: "Choose Activity",
+				Name:        "template",
+				Type:        "select",
+				Placeholder: "Select an Activity...",
+				Default:     "opt1",
+				Options:     activities,
+			}},
+		SubmitLabel:    "Start Activity",
+		NotifyOnCancel: true,
+		State:          dialogStateSome,
+	}
+	dialog.IntroductionText = "To see the full details for any activity, visit [Parabol's Activity Library](https://mattermost.com)"
+	return dialog
 }
 
 func getDialogWithSampleElements() model.Dialog {
@@ -370,4 +382,3 @@ func getDialogWithIntroductionText(introductionText string) model.Dialog {
 	dialog.IntroductionText = introductionText
 	return dialog
 }
-
