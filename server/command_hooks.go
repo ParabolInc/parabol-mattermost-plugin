@@ -1,13 +1,9 @@
 package main
 
 import (
-	"context"
 	"fmt"
-	"net/http"
 	"strings"
-	"time"
 
-	"github.com/dadrus/httpsig"
 	"github.com/pkg/errors"
 
 	"github.com/mattermost/mattermost/server/public/model"
@@ -15,7 +11,7 @@ import (
 )
 
 const (
-	commandTriggerDialog            = "parabol"
+	commandTriggerDialog = "parabol"
 
 	dialogElementNameNumber = "somenumber"
 	dialogElementNameEmail  = "someemail"
@@ -26,7 +22,7 @@ const (
 
 	commandDialogHelp = "###### Interactive Parabol Slash Command Help\n" +
 		"- `/dialog` - Open an Interactive Dialog. Once submitted, user-entered input is posted back into a channel.\n" +
-		"- `/dialog no-elements` - Open an Interactive Dialog with no elements. Once submitted, user's action is posted back into a channel.\n" +
+		"- `/dialog start` - Open an Interactive Dialog with no elements. Once submitted, user's action is posted back into a channel.\n" +
 		"- `/dialog relative-callback-url` - Open an Interactive Dialog with relative callback URL. Once submitted, user's action is posted back into a channel.\n" +
 		"- `/dialog introduction-text` - Open an Interactive Dialog with optional introduction text. Once submitted, user's action is posted back into a channel.\n" +
 		"- `/dialog error` - Open an Interactive Dialog which always returns an general error.\n" +
@@ -51,8 +47,7 @@ func (p *Plugin) registerCommands() error {
 func getCommandDialogAutocompleteData() *model.AutocompleteData {
 	command := model.NewAutocompleteData(commandTriggerDialog, "", "Open an Interactive Dialog.")
 
-	noElements := model.NewAutocompleteData("foo-no-elements", "", "Open an Interactive Dialog with no elements.")
-	command.AddCommand(noElements)
+	command.AddCommand(model.NewAutocompleteData("start", "", "Start a Parabol Activity"))
 
 	relativeCallbackURL := model.NewAutocompleteData("relative-callback-url", "", "Open an Interactive Dialog with a relative callback url.")
 	command.AddCommand(relativeCallbackURL)
@@ -66,8 +61,7 @@ func getCommandDialogAutocompleteData() *model.AutocompleteData {
 	errorNoElements := model.NewAutocompleteData("error-no-elements", "", "Open an Interactive Dialog with error no elements.")
 	command.AddCommand(errorNoElements)
 
-	help := model.NewAutocompleteData("help", "", "")
-	command.AddCommand(help)
+	command.AddCommand(model.NewAutocompleteData("help", "", ""))
 
 	return command
 }
@@ -92,69 +86,6 @@ func (p *Plugin) ExecuteCommand(c *plugin.Context, args *model.CommandArgs) (*mo
 }
 
 func (p *Plugin) executeCommandDialog(args *model.CommandArgs) *model.CommandResponse {
-	serverConfig := p.API.GetConfig()
-
-	privKey := `-----BEGIN OPENSSH PRIVATE KEY-----
-b3BlbnNzaC1rZXktdjEAAAAABG5vbmUAAAAEbm9uZQAAAAAAAAABAAABFwAAAAdzc2gtcn
-NhAAAAAwEAAQAAAQEAujudq2xPiEXY0eFd2O58NC66czOT/eZdlsI43teJj2Twp4Yiyepj
-hckFYsAmh1HCi7KlK6JAADQJkzmis6qVD7MXANDOG606tj3KddOj8NwDaysdFneUWVDqnS
-AszXtKDPNo8K4ot7oU6OR4ox7HswqwHtm5ZANvaKDjQcUocAn8m3aaLnTKlWZiTcyJbxEP
-y+JL7ZdB/LePTugPKoDEZ9t67oA6ll0/WEBkoH+OPwPRya/FynRNcakZ6KKBzlkRhGYaRQ
-iCQG476uVpDOC0SGAmv/fD8g/1lFHHoIRvn4MeecKd0xbnzz3kLW8q0gDvVbAc0EjFEB9+
-FyvD/EGtdwAAA8grCgEiKwoBIgAAAAdzc2gtcnNhAAABAQC6O52rbE+IRdjR4V3Y7nw0Lr
-pzM5P95l2Wwjje14mPZPCnhiLJ6mOFyQViwCaHUcKLsqUrokAANAmTOaKzqpUPsxcA0M4b
-rTq2Pcp106Pw3ANrKx0Wd5RZUOqdICzNe0oM82jwrii3uhTo5HijHsezCrAe2blkA29ooO
-NBxShwCfybdpoudMqVZmJNzIlvEQ/L4kvtl0H8t49O6A8qgMRn23rugDqWXT9YQGSgf44/
-A9HJr8XKdE1xqRnoooHOWRGEZhpFCIJAbjvq5WkM4LRIYCa/98PyD/WUUceghG+fgx55wp
-3TFufPPeQtbyrSAO9VsBzQSMUQH34XK8P8Qa13AAAAAwEAAQAAAQBY2Mw11ixzVO9F4gDF
-17EFrC1jfH3kKZ0IqYw8NBP6hyuQoJvEPMBSOT8Kh6VZ9ZWc1BOcp4FlF25iAKMwl/cZUF
-VvHC7YYWKbQwtt/xQ9eple7WipKU9q9QGZCJqXRXRkjVPJTy05ydrj6Ovs1mhrcHPpo/Gg
-V0s1XVxOKmNKX4fHw3Q1VCe/9lbOoDfiJxrOcjPMsUIyP0v0y8LhCpGGzRfr/jguSOP500
-kIzWH+RNaGbJxrqWJyeSk/g9Nwrm2+EOgFP1hEp2ocppsqvs45jy7KaXQil7QVoUUYsKbZ
-sXGrg7ost8V5r+P2kb33V/E40BufMWaN7ZTof9zeJTLxAAAAgQDd6WV2tny6e3zrG7tzDW
-u6pkVpHvG/HH1HAIP5oNTTTMQ4lvfPUoWBNsAXQPXICZC0EL+sB6SAN4zHCuUaCiou2Fw/
-6hWrVwfgjXHx9IeJJm/JnGBYDk0jKc084kYVUAb6gfMMCM+IG1ALlx/Q/XpP/pKXJaT4YI
-ipLye/u9p6zwAAAIEA80Ip2qRCVgK6ZdgX/FMj1gCGS3DBSRnAUXmGP3Jkq8ql6ukzl8iB
-zBHqXANoJouKjYxfAlZq0TOMLkJ2Fr0vypmgAnKY8rMbZx1YAn8wCmzI49wK4mLbFl5vPj
-DnwdBj7Vng5u9EIQabOr7XfDFLvQtTOWNdj751Nvi8TGpBc4MAAACBAMP8zNrZE1EFQFOa
-WHNY4o6wciwncdgsEhiLpR4rDgIrFR3XTJGrzbWCHPUkbraeNhqJb7kNcga/rhe12kECox
-uucNMTb5CRPWwMLuX+a4i6F1k2r4iXHgW7PKEqIeHITqMj3awUEPxis89aqnG3zFSfvALB
-+1Lufkk7Db4Zm1f9AAAAEGdlb3JnQGdyYW5ueS5sYW4BAg==
------END OPENSSH PRIVATE KEY-----`
-	signer, err := httpsig.NewSigner(
-		// specify a key
-		httpsig.Key{KeyID: "key1", Key: privKey, Algorithm: httpsig.EcdsaP256Sha256},
-		// specify the required options
-		// duration for which the signature should be valid
-		httpsig.WithTTL(5 * time.Second),
-		// which components should be protected by a signature
-		httpsig.WithComponents("@authority", "@method", "x-my-fancy-header"),
-		// a tag for your specific application
-		httpsig.WithTag("myapp"),
-	)
-	// error handling goes here
-
-	// Create a request
-	req, err := http.NewRequestWithContext(context.Background(), "GET", "http://host.docker.internal:3001/mattermost", nil)
-	// error handling goes here
-
-	// Sign the request
-	header, err := signer.Sign(httpsig.MessageFromRequest(req))
-	// error handling goes here
-	client := &http.Client{}
-
-	// Add the signature to the request
-	req.Header = header
-
-	resp, err := client.Do(req)
-
-	if err != nil {
-		//log.Fatalln(err)
-		fmt.Print("GEORG", err)
-	} else {
-	        fmt.Print("GEORG", resp)
-	}
-
 	var dialogRequest model.OpenDialogRequest
 	fields := strings.Fields(args.Command)
 	command := ""
@@ -162,22 +93,25 @@ uucNMTb5CRPWwMLuX+a4i6F1k2r4iXHgW7PKEqIeHITqMj3awUEPxis89aqnG3zFSfvALB
 		command = fields[1]
 	}
 
+	user, _ := p.API.GetUser(args.UserId)
+	fmt.Print("GEORG User", user.Email, user.EmailVerified)
+
 	switch command {
 	case "help":
 		return &model.CommandResponse{
 			ResponseType: model.CommandResponseTypeEphemeral,
 			Text:         commandDialogHelp,
 		}
-	case "":
+	case "start":
 		dialogRequest = model.OpenDialogRequest{
 			TriggerId: args.TriggerId,
-			URL:       fmt.Sprintf("%s/plugins/%s/dialog/1", *serverConfig.ServiceSettings.SiteURL, manifest.Id),
-			Dialog:    getDialogWithSampleElements(),
+			URL:       fmt.Sprintf("/plugins/%s/dialog/1", manifest.Id),
+			Dialog:    p.getStartActivityDialog(user.Email),
 		}
 	case "no-elements":
 		dialogRequest = model.OpenDialogRequest{
 			TriggerId: args.TriggerId,
-			URL:       fmt.Sprintf("%s/plugins/%s/dialog/2", *serverConfig.ServiceSettings.SiteURL, manifest.Id),
+			URL:       fmt.Sprintf("/plugins/%s/dialog/2", manifest.Id),
 			Dialog:    getDialogWithoutElements(dialogStateSome),
 		}
 	case "relative-callback-url":
@@ -189,7 +123,7 @@ uucNMTb5CRPWwMLuX+a4i6F1k2r4iXHgW7PKEqIeHITqMj3awUEPxis89aqnG3zFSfvALB
 	case "introduction-text":
 		dialogRequest = model.OpenDialogRequest{
 			TriggerId: args.TriggerId,
-			URL:       fmt.Sprintf("%s/plugins/%s/dialog/1", *serverConfig.ServiceSettings.SiteURL, manifest.Id),
+			URL:       fmt.Sprintf("/plugins/%s/dialog/1", manifest.Id),
 			Dialog:    getDialogWithIntroductionText(dialogIntroductionText),
 		}
 	case "error":
@@ -220,6 +154,58 @@ uucNMTb5CRPWwMLuX+a4i6F1k2r4iXHgW7PKEqIeHITqMj3awUEPxis89aqnG3zFSfvALB
 		}
 	}
 	return &model.CommandResponse{}
+}
+
+func (p *Plugin) getStartActivityDialog(email string) model.Dialog {
+	templates := p.queryMeetingTemplates(email)
+	if templates == nil {
+		fmt.Print("GEORG error retrieving templates")
+	}
+
+	iconURL, _ := p.API.GetFileLink("parabol.svg")
+	fmt.Print("GEORG iconURL", iconURL)
+
+	var teams []*model.PostActionOptions
+	for _, team := range templates.Teams {
+		teams = append(teams, &model.PostActionOptions{
+			Text:  team.Name,
+			Value: team.ID,
+		})
+	}
+	var activities []*model.PostActionOptions
+	for _, activity := range templates.AvailableTemplates {
+		activities = append(activities, &model.PostActionOptions{
+			Text:  activity.Name,
+			Value: activity.ID,
+		})
+	}
+
+	dialog := model.Dialog{
+		CallbackId: "startActivity",
+		Title:      "Start a Parabol Activity",
+		IconURL:    iconURL,
+		Elements: []model.DialogElement{
+			{
+				DisplayName: "Choose Parabol Team",
+				Name:        "team",
+				Type:        "select",
+				Placeholder: "Select a Team...",
+				Default:     "opt1",
+				Options:     teams,
+			}, {
+				DisplayName: "Choose Activity",
+				Name:        "template",
+				Type:        "select",
+				Placeholder: "Select an Activity...",
+				Default:     "opt1",
+				Options:     activities,
+			}},
+		SubmitLabel:    "Start Activity",
+		NotifyOnCancel: true,
+		State:          dialogStateSome,
+	}
+	dialog.IntroductionText = "To see the full details for any activity, visit [Parabol's Activity Library](https://mattermost.com)"
+	return dialog
 }
 
 func getDialogWithSampleElements() model.Dialog {
@@ -396,4 +382,3 @@ func getDialogWithIntroductionText(introductionText string) model.Dialog {
 	dialog.IntroductionText = introductionText
 	return dialog
 }
-
