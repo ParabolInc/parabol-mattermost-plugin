@@ -1,12 +1,15 @@
 package main
 
 import (
+	"fmt"
 	"net/http"
 	"sync"
 
 	"github.com/mattermost/mattermost/server/public/model"
 	"github.com/mattermost/mattermost/server/public/plugin"
 )
+
+const BOT_USER_KEY = "botUserID"
 
 // Plugin implements the interface expected by the Mattermost server to communicate between the server and plugin processes.
 type Plugin struct {
@@ -22,11 +25,17 @@ type Plugin struct {
 
 
 func (p *Plugin) notify(w http.ResponseWriter, r *http.Request) {
-	p.API.CreatePost(&model.Post{
-		ChannelId: "town-square",
+	userId, err := p.API.KVGet(BOT_USER_KEY)
+	channel, err2 := p.API.KVGet("notifications")
+	if err != nil || err2 != nil {
+		return
+	}
+	post, err := p.API.CreatePost(&model.Post{
+		ChannelId: string(channel),
 		Message:   "Hello, this is a notification from your plugin!",
-		UserId:    "parabol",
+		UserId:    string(userId),
 	})
+	fmt.Print("GEORG", post, err)
 }
 
 // ServeHTTP demonstrates a plugin that handles HTTP requests by greeting the world.
