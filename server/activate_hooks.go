@@ -2,7 +2,10 @@ package main
 
 import (
 	"fmt"
+	"os"
+	"path/filepath"
 
+	"github.com/mattermost/mattermost/server/public/model"
 	"github.com/pkg/errors"
 )
 
@@ -16,6 +19,33 @@ func (p *Plugin) OnActivate() error {
 	if err := p.registerCommands(); err != nil {
 		return errors.Wrap(err, "failed to register commands")
 	}
+
+	botId, err := p.API.EnsureBotUser(&model.Bot{
+		Username:    "parabol-bot",
+		DisplayName: "Parabol",
+		Description: "Created by the Parabol plugin.",
+	})
+	if err != nil {
+		return errors.Wrap(err, "failed to create bot")
+	}
+	{
+		bundlePath, err := p.API.GetBundlePath()
+		if err != nil {
+		    return errors.Wrap(err, "failed to get bundle path")
+		}
+
+		profileImage, err := os.ReadFile(filepath.Join(bundlePath, "assets", "parabol.png"))
+		if err != nil {
+		    return errors.Wrap(err, "failed to read profile image")
+		}
+
+		if err := p.API.SetProfileImage(botId, profileImage); err != nil {
+		    return errors.Wrap(err, "failed to set profile image")
+		}
+	}
+
+
+	p.API.KVSet(BOT_USER_KEY, []byte(botId))
 
 	return nil
 }

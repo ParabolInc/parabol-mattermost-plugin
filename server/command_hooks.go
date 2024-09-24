@@ -112,11 +112,11 @@ func (p *Plugin) executeCommandDialog(args *model.CommandArgs) *model.CommandRes
 			URL:       fmt.Sprintf("/plugins/%s/start", manifest.Id),
 			Dialog:    p.getStartActivityDialog(user.Email),
 		}
-	case "no-elements":
-		dialogRequest = model.OpenDialogRequest{
-			TriggerId: args.TriggerId,
-			URL:       fmt.Sprintf("/plugins/%s/dialog/2", manifest.Id),
-			Dialog:    getDialogWithoutElements(dialogStateSome),
+	case "notifications":
+		p.API.KVSet("notifications", []byte(args.ChannelId))
+		return &model.CommandResponse{
+			ResponseType: model.CommandResponseTypeEphemeral,
+			Text:         "Enabled notifications",
 		}
 	case "relative-callback-url":
 		dialogRequest = model.OpenDialogRequest{
@@ -131,6 +131,9 @@ func (p *Plugin) executeCommandDialog(args *model.CommandArgs) *model.CommandRes
 			Dialog:    getDialogWithIntroductionText(dialogIntroductionText),
 		}
 	case "error":
+		data := map[string]interface{}{"error": "GEORG was here occurred"}
+
+		p.API.PublishWebSocketEvent("error", data, &model.WebsocketBroadcast{UserId: args.UserId})
 		dialogRequest = model.OpenDialogRequest{
 			TriggerId: args.TriggerId,
 			URL:       fmt.Sprintf("/plugins/%s/dialog/error", manifest.Id),
