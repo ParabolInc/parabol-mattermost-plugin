@@ -86,6 +86,8 @@ func (p *Plugin) ExecuteCommand(c *plugin.Context, args *model.CommandArgs) (*mo
 }
 
 func (p *Plugin) executeCommandDialog(args *model.CommandArgs) *model.CommandResponse {
+	config := p.getConfiguration()
+	url := config.ParabolURL
 	var dialogRequest model.OpenDialogRequest
 	fields := strings.Fields(args.Command)
 	command := ""
@@ -93,8 +95,10 @@ func (p *Plugin) executeCommandDialog(args *model.CommandArgs) *model.CommandRes
 		command = fields[1]
 	}
 
+
 	user, _ := p.API.GetUser(args.UserId)
 	fmt.Print("GEORG User", user.Email, user.EmailVerified)
+	fmt.Print("GEORG url", url)
 
 	switch command {
 	case "help":
@@ -105,7 +109,7 @@ func (p *Plugin) executeCommandDialog(args *model.CommandArgs) *model.CommandRes
 	case "start":
 		dialogRequest = model.OpenDialogRequest{
 			TriggerId: args.TriggerId,
-			URL:       fmt.Sprintf("/plugins/%s/dialog/1", manifest.Id),
+			URL:       fmt.Sprintf("/plugins/%s/start", manifest.Id),
 			Dialog:    p.getStartActivityDialog(user.Email),
 		}
 	case "no-elements":
@@ -161,6 +165,7 @@ func (p *Plugin) getStartActivityDialog(email string) model.Dialog {
 	if templates == nil {
 		fmt.Print("GEORG error retrieving templates")
 	}
+	//state, _ := json.Marshal(templates)
 
 	iconURL, _ := p.API.GetFileLink("parabol.svg")
 	fmt.Print("GEORG iconURL", iconURL)
@@ -172,40 +177,48 @@ func (p *Plugin) getStartActivityDialog(email string) model.Dialog {
 			Value: team.ID,
 		})
 	}
+	defaultTeam := ""
+	if len(teams) > 0 {
+		defaultTeam = teams[0].Value
+	}
+
 	var activities []*model.PostActionOptions
 	for _, activity := range templates.AvailableTemplates {
 		activities = append(activities, &model.PostActionOptions{
 			Text:  activity.Name,
-			Value: activity.ID,
+			Value: fmt.Sprintf("%s:%s", activity.Type, activity.ID),
 		})
 	}
+	defaultActivity := ""
+	if len(activities) > 0 {
+		defaultActivity = activities[0].Value
+	}
 
-	dialog := model.Dialog{
+	return model.Dialog{
 		CallbackId: "startActivity",
 		Title:      "Start a Parabol Activity",
 		IconURL:    iconURL,
+		IntroductionText: "To see the full details for any activity, visit [Parabol's Activity Library](https://mattermost.com)",
+		//State: string(state),
 		Elements: []model.DialogElement{
 			{
 				DisplayName: "Choose Parabol Team",
 				Name:        "team",
 				Type:        "select",
 				Placeholder: "Select a Team...",
-				Default:     "opt1",
+				Default:     defaultTeam,
 				Options:     teams,
 			}, {
 				DisplayName: "Choose Activity",
 				Name:        "template",
 				Type:        "select",
 				Placeholder: "Select an Activity...",
-				Default:     "opt1",
+				Default:     defaultActivity,
 				Options:     activities,
 			}},
 		SubmitLabel:    "Start Activity",
 		NotifyOnCancel: true,
-		State:          dialogStateSome,
 	}
-	dialog.IntroductionText = "To see the full details for any activity, visit [Parabol's Activity Library](https://mattermost.com)"
-	return dialog
 }
 
 func getDialogWithSampleElements() model.Dialog {

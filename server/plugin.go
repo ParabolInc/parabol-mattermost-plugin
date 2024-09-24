@@ -1,10 +1,10 @@
 package main
 
 import (
-	"fmt"
 	"net/http"
 	"sync"
 
+	"github.com/mattermost/mattermost/server/public/model"
 	"github.com/mattermost/mattermost/server/public/plugin"
 )
 
@@ -20,9 +20,21 @@ type Plugin struct {
 	configuration *configuration
 }
 
+
+func (p *Plugin) notify(w http.ResponseWriter, r *http.Request) {
+	p.API.CreatePost(&model.Post{
+		ChannelId: "town-square",
+		Message:   "Hello, this is a notification from your plugin!",
+		UserId:    "parabol",
+	})
+}
+
 // ServeHTTP demonstrates a plugin that handles HTTP requests by greeting the world.
 func (p *Plugin) ServeHTTP(c *plugin.Context, w http.ResponseWriter, r *http.Request) {
-	fmt.Fprint(w, "Hello, world!")
+	mux := http.NewServeMux()
+	mux.HandleFunc("/start", p.startActivity)
+	mux.HandleFunc("/notify", p.notify)
+	mux.ServeHTTP(w, r)
 }
 
 // See https://developers.mattermost.com/extend/plugins/server/reference/
