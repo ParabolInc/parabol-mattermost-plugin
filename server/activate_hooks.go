@@ -45,7 +45,7 @@ func (p *Plugin) OnActivate() error {
 	}
 
 
-	p.API.KVSet(BOT_USER_KEY, []byte(botId))
+	p.API.KVSet(botUserID, []byte(botId))
 
 	return nil
 }

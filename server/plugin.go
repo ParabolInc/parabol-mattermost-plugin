@@ -1,15 +1,22 @@
 package main
 
 import (
+	"context"
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"sync"
+	"time"
 
 	"github.com/mattermost/mattermost/server/public/model"
 	"github.com/mattermost/mattermost/server/public/plugin"
+	"github.com/mattermost/mattermost/server/public/pluginapi/experimental/bot/logger"
 )
 
-const BOT_USER_KEY = "botUserID"
+const (
+	botUserID = "botUserID"
+	requestTimeout      = 30 * time.Second
+)
 
 // Plugin implements the interface expected by the Mattermost server to communicate between the server and plugin processes.
 type Plugin struct {
@@ -23,9 +30,51 @@ type Plugin struct {
 	configuration *configuration
 }
 
+type Context struct {
+	Ctx    context.Context
+	UserID string
+	User   *model.User
+	Log    logger.Logger
+}
+
+type HTTPHandlerFuncWithContext func(c *Context, w http.ResponseWriter, r *http.Request)
+
+func (p *Plugin) createContext(userID string) (*Context, context.CancelFunc) {
+	user, _ := p.API.GetUser(userID)
+	// TODO check email and email verified
+
+	logger := logger.New(p.API).With(logger.LogContext{
+		"userid": userID,
+	})
+
+	ctx, cancel := context.WithTimeout(context.Background(), requestTimeout)
+
+	context := &Context{
+		Ctx:    ctx,
+		UserID: userID,
+		User:   user,
+		Log:    logger,
+	}
+
+	return context, cancel
+}
+
+func (p *Plugin) authenticated(handler HTTPHandlerFuncWithContext) http.HandlerFunc {
+  return func(w http.ResponseWriter, r *http.Request) {
+    userID := r.Header.Get("Mattermost-User-ID")
+    if userID == "" {
+	w.WriteHeader(http.StatusUnauthorized)
+	w.Write([]byte(`{"error": "Not authorized"}`))
+    }
+
+    context, cancel := p.createContext(userID)
+    defer cancel()
+    handler(context, w, r)
+  }
+}
 
 func (p *Plugin) notify(w http.ResponseWriter, r *http.Request) {
-	userId, err := p.API.KVGet(BOT_USER_KEY)
+	userId, err := p.API.KVGet(botUserID)
 	channel, err2 := p.API.KVGet("notifications")
 	if err != nil || err2 != nil {
 		return
@@ -38,11 +87,19 @@ func (p *Plugin) notify(w http.ResponseWriter, r *http.Request) {
 	fmt.Print("GEORG", post, err)
 }
 
+func (p *Plugin) templates(c *Context, w http.ResponseWriter, r *http.Request) {
+	templates := p.queryMeetingTemplates(c.User.Email)
+	w.Header().Set("Content-Type", "application/json")
+        body, _ := json.Marshal(templates)
+	w.Write(body)
+}
+
 // ServeHTTP demonstrates a plugin that handles HTTP requests by greeting the world.
 func (p *Plugin) ServeHTTP(c *plugin.Context, w http.ResponseWriter, r *http.Request) {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/start", p.startActivity)
 	mux.HandleFunc("/notify", p.notify)
+	mux.HandleFunc("/templates", p.authenticated(p.templates))
 	mux.ServeHTTP(w, r)
 }
 

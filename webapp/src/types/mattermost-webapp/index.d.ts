@@ -11,8 +11,11 @@ type MessageHtmlToComponentOptions = {
     mentionHighlight: boolean;
 }
 
+
+
 export interface PluginRegistry {
     registerReducer(reducer)
+    registerChannelHeaderButtonAction(icon: Reast.ReactNode, action: () => void, tooltipText: string)
     registerPostTypeComponent(typeName: string, component: React.ElementType)
     registerRightHandSidebarComponent(component: React.ReactNode, title: string | JSX.Element)
     registerSlashCommandWillBePostedHook(hook: (rawMessage: string, contextArgs: ContextArgs) => Promise<{}>)
@@ -25,11 +28,6 @@ export interface PluginRegistry {
     registerReconnectHandler(handler: any)
     registerPostDropdownMenuComponent(component: React.ReactNode)
     registerRootComponent(component: React.ElementType)
-
-    // Add more if needed from https://developers.mattermost.com/extend/plugins/webapp/reference
-}
-export interface PluginRegistry {
-    registerPostTypeComponent(typeName: string, component: React.ElementType)
 
     // Add more if needed from https://developers.mattermost.com/extend/plugins/webapp/reference
 }
