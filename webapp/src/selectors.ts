@@ -30,7 +30,7 @@ export const getAssetsUrl = (state) => {
     return `${siteURL}/public`;
 };
 
-const getPluginState = (state) => state[`plugins-${id}`] ?? {};
+export const getPluginState = (state) => state[`plugins-${id}`] ?? {};
 
 export const meetingTemplates = (state) => getPluginState(state).meetingTemplates;
 

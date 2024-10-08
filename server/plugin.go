@@ -87,11 +87,28 @@ func (p *Plugin) notify(w http.ResponseWriter, r *http.Request) {
 	fmt.Print("GEORG", post, err)
 }
 
+
 func (p *Plugin) templates(c *Context, w http.ResponseWriter, r *http.Request) {
 	templates := p.queryMeetingTemplates(c.User.Email)
 	w.Header().Set("Content-Type", "application/json")
         body, _ := json.Marshal(templates)
 	w.Write(body)
+}
+
+func (p *Plugin) templates2(c *Context, w http.ResponseWriter, r *http.Request) {
+	fmt.Print("GEORG GET TEMPLATES")
+	p.templates(c, w, r)
+}
+
+func (p *Plugin) updateMeetingSettings(c *Context, w http.ResponseWriter, r *http.Request) {
+	var settings SetMeetingSettingsVariables
+	err := json.NewDecoder(r.Body).Decode(&settings)
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+	p.setMeetingSettings(c.User.Email, settings)
+	w.WriteHeader(http.StatusOK)
 }
 
 // ServeHTTP demonstrates a plugin that handles HTTP requests by greeting the world.
@@ -100,6 +117,8 @@ func (p *Plugin) ServeHTTP(c *plugin.Context, w http.ResponseWriter, r *http.Req
 	mux.HandleFunc("/start", p.startActivity)
 	mux.HandleFunc("/notify", p.notify)
 	mux.HandleFunc("/templates", p.authenticated(p.templates))
+	mux.HandleFunc("/templates2", p.authenticated(p.templates2))
+	mux.HandleFunc("/meeting-settings", p.authenticated(p.updateMeetingSettings))
 	mux.ServeHTTP(w, r)
 }
 

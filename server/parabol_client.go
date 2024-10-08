@@ -29,18 +29,18 @@ type MeetingTemplatesResponse struct {
 		Name string `json:"name"`
 		OrgID string `json:"orgId"`
                 RetroSettings struct {
-					ID               string   `json:"id"`
-					PhaseTypes       []string `json:"phaseTypes"`
-					DisableAnonymity bool     `json:"disableAnonymity"`
-				} `json:"retroSettings"`
-				PokerSettings struct {
-					ID         string   `json:"id"`
-					PhaseTypes []string `json:"phaseTypes"`
-				} `json:"pokerSettings"`
-				ActionSettings struct {
-					ID         string   `json:"id"`
-					PhaseTypes []string `json:"phaseTypes"`
-				} `json:"actionSettings"`
+			ID               string   `json:"id"`
+			PhaseTypes       []string `json:"phaseTypes"`
+			DisableAnonymity bool     `json:"disableAnonymity"`
+		} `json:"retroSettings"`
+		PokerSettings struct {
+			ID         string   `json:"id"`
+			PhaseTypes []string `json:"phaseTypes"`
+		} `json:"pokerSettings"`
+		ActionSettings struct {
+			ID         string   `json:"id"`
+			PhaseTypes []string `json:"phaseTypes"`
+		} `json:"actionSettings"`
 	} `json:"teams"`
 }
 
@@ -73,7 +73,14 @@ type StartActivitySubmit struct {
 	Cancelled bool `json:"cancelled"`
 }
 
-func newSigningClient(privKey []byte) *httpsign.Client {
+type SetMeetingSettingsVariables struct {
+	SettingsID string `json:"id"`
+	CheckinEnabled bool `json:"checkinEnabled"`
+	TeamHealthEnabled bool `json:"teamHealthEnabled"`
+	DisablesAnonymity bool `json:"disableAnonymity"`
+}
+
+func NewSigningClient(privKey []byte) *httpsign.Client {
 	signer, err := httpsign.NewJWSSigner(jwa.SignatureAlgorithm("HS256"), privKey, httpsign.NewSignConfig().SignAlg(false),
 		httpsign.Headers("@request-target", "Content-Digest"))
 	if err != nil {
@@ -95,7 +102,7 @@ func query[R any, V any](p *Plugin, query Query[V]) *R {
 	url := config.ParabolURL
 	privKey := []byte(config.ParabolToken)
 
-	client := newSigningClient(privKey)
+	client := NewSigningClient(privKey)
 	body, _ := json.Marshal(query)
 	res, err := client.Post(url, "application/json", bufio.NewReader(bytes.NewReader(body)))
 
@@ -119,6 +126,14 @@ func (p *Plugin) queryMeetingTemplates(email string) *MeetingTemplatesResponse {
 		Variables: EmailVariables{
 			Email: email,
 		},
+		Email: email,
+	})
+}
+
+func (p *Plugin) setMeetingSettings(email string, variables SetMeetingSettingsVariables) {
+	query[any](p, Query[SetMeetingSettingsVariables]{
+		Query: "setMeetingSettings",
+		Variables: variables,
 		Email: email,
 	})
 }

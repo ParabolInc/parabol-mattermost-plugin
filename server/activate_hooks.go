@@ -14,7 +14,6 @@ import (
 // This demo implementation logs a message to the demo channel whenever the plugin is activated.
 // It also creates a demo bot account
 func (p *Plugin) OnActivate() error {
-	fmt.Println("GEORG config", p.API.GetConfig().ServiceSettings.SiteURL)
 	fmt.Printf("GEORG /plugins/%s/start", manifest.Id)
 	if err := p.registerCommands(); err != nil {
 		return errors.Wrap(err, "failed to register commands")
@@ -43,7 +42,6 @@ func (p *Plugin) OnActivate() error {
 		    return errors.Wrap(err, "failed to set profile image")
 		}
 	}
-
 
 	p.API.KVSet(botUserID, []byte(botId))
 
