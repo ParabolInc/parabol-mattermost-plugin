@@ -77,6 +77,9 @@ const config = {
             },
         ],
     },
+    optimization: {
+        minimize: false,
+    },
     externals: {
         react: 'React',
         'react-dom': 'ReactDOM',

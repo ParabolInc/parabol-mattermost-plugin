@@ -1,5 +1,12 @@
 import {Client4} from 'mattermost-redux/client';
 
+export type RetroSettings = {
+    id: string
+    checkinEnabled: boolean
+    teamHealthEnabled: boolean
+    disableAnonymity: boolean
+}
+
 class Client {
     url: string;
 
@@ -23,6 +30,10 @@ class Client {
 
     getTemplates = () => {
         return this.post('templates', {});
+    }
+
+    setMeetingSettings = (settings: RetroSettings) => {
+        return this.post('meeting-settings', settings);
     }
 }
 
