@@ -1,24 +1,9 @@
-import { BaseQueryFn, buildCreateApi, coreModule, createApi, FetchArgs, fetchBaseQuery, FetchBaseQueryError, reactHooksModule } from '@reduxjs/toolkit/query/react'
+import {BaseQueryFn, createApi, FetchArgs, fetchBaseQuery, FetchBaseQueryError} from '@reduxjs/toolkit/query/react'
 import {Client4} from 'mattermost-redux/client'
-import {useSelector} from 'react-redux'
-import {getPluginServerRoute, getPluginState} from './selectors'
+import {getPluginServerRoute} from './selectors'
+import manifest from '@/manifest';
 
-export interface Post {
-  id: string
-  title: string
-  author: string
-  content: string
-  status: (typeof postStatuses)[number]
-  created_at: string
-  updated_at: string
-}
-
-export interface Pagination {
-  page: number
-  per_page: number
-  total: number
-  total_pages: number
-}
+const {id} = manifest;
 
 type Template = {
     id: string
@@ -30,20 +15,18 @@ type Template = {
     scope: string
 }
 
-type MeetingSettings = {
+export type MeetingSettings = {
     id: string
-    phaseTypes: string[]
-}
-
-type RetroSettings = MeetingSettings & {
-    disableAnonymity: boolean
+    checkinEnabled: boolean
+    teamHealthEnabled: boolean
+    disableAnonymity?: boolean
 }
 
 type Team = {
     id: string
     name: string
     orgId: string
-    retroSettings: RetroSettings
+    retroSettings: MeetingSettings
     pokerSettings: MeetingSettings
     actionSettings: MeetingSettings
 }
@@ -69,9 +52,7 @@ const baseQuery: BaseQueryFn<
   unknown,
   FetchBaseQueryError
 > = async (args, api, extraOptions) => {
-  console.log('GEORG baseQuery', args)
   const baseUrl = getPluginServerRoute(api.getState())
-  console.log('GEORG baseUrl', baseUrl)
   const adjustedArgs =
     typeof args === 'string' ? {
       url: joinUrl(baseUrl, args),
@@ -82,36 +63,89 @@ const baseQuery: BaseQueryFn<
   return rawBaseQuery(Client4.getOptions(adjustedArgs as any) as any, api, extraOptions)
 }
 
-const customCreateApi = buildCreateApi(
-  coreModule(),
-  reactHooksModule({
-    useSelector: (state) => {
-      return useSelector(getPluginState(state))
-    },
-  }),
-)
-
-
-//export const initApi = (baseUrl: string) => createApi({
 export const api = createApi({
-  reducerPath: 'plugins-co.parabol.action',
+  reducerPath: `plugins-${id}`,
   baseQuery,
+  tagTypes: ['MeetingTemplates', 'MeetingSettings'],
   endpoints: (builder) => ({
     getTemplates: builder.query<MeetingTemplatesResponse, void>({
-        query: () => ({
-            url: '/templates2',
-            method: 'POST',
-        }),
-        transformResponse: (response) => {
-          console.log('GEORG transformResponse', response)
-          return response as any
-        },
-        transformErrorResponse: (response) => {
-          console.log('GEORG transformErrorResponse', response)
-          return response
-        },
+      query: () => ({
+        url: '/query/meetingTemplates',
+        method: 'POST',
+      }),
+    }),
+    // teamId and meetingType are required for convenient cache updates
+    setMeetingSettings: builder.mutation<MeetingSettings, MeetingSettings>({
+      query: (variables) => ({
+        url: '/query/setMeetingSettings',
+        method: 'POST',
+        body: variables
+      }),
+      invalidatesTags: () => {
+        console.log('invalidating tags')
+        return ['MeetingSettings']
+      },
+      onQueryStarted: (variables, {dispatch, queryFulfilled}) => {
+        console.log('onQueryStarted')
+      },
+      onCacheEntryAdded: (cache, action) => {
+        console.log('onCacheEntryAdded')
+      },
+
+        /*(result) => {
+        return result ? [{type: 'MeetingSettings', id: result.id}] : ['MeetingSettings']
+      }
+      */
+    }),
+    getMeetingSettings: builder.query<MeetingSettings, {teamId: string, meetingType: string}>({
+      query: (variables) => ({
+        url: '/query/getMeetingSettings',
+        method: 'POST',
+        body: variables
+      }),
+      providesTags: () => {
+        console.log('providing tags')
+        return ['MeetingSettings']
+      }
+        /*(result) => {
+        return result ? ['MeetingSettings', {type: 'MeetingSettings', id: result.id}] : ['MeetingSettings']
+      }
+      */
+    }),
+    startRetrospective: builder.mutation<void, {teamId: string, templateId: string}>({
+      query: (variables) => ({
+        url: '/query/startRetrospective',
+        method: 'POST',
+        body: variables
+      }),
+    }),
+    startCheckIn: builder.mutation<void, {teamId: string}>({
+      query: (variables) => ({
+        url: '/query/startCheckIn',
+        method: 'POST',
+        body: variables
+      }),
+    }),
+    startSprintPoker: builder.mutation<void, {teamId: string, templateId: string}>({
+      query: (variables) => ({
+        url: '/query/startSprintPoker',
+        method: 'POST',
+        body: variables
+      }),
+    }),
+    startTeamPrompt: builder.mutation<void, {teamId: string}>({
+      query: (variables) => ({
+        url: '/query/startTeamPrompt',
+        method: 'POST',
+        body: variables
+      }),
     }),
   }),
 })
 
-export const { useGetTemplatesQuery } = api
+
+export const isError = (result: any): result is {error: Error} => {
+  return 'error' in result && result.error instanceof Object
+}
+
+export const { useGetTemplatesQuery, useSetMeetingSettingsMutation, useGetMeetingSettingsQuery, useStartRetrospectiveMutation, useStartTeamPromptMutation, useStartCheckInMutation, useStartSprintPokerMutation } = api

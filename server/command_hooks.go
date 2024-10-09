@@ -21,12 +21,13 @@ const (
 	dialogIntroductionText         = "**Some** _introductory_ paragraph in Markdown formatted text with [link](https://mattermost.com)"
 
 	commandDialogHelp = "###### Interactive Parabol Slash Command Help\n" +
-		"- `/dialog` - Open an Interactive Dialog. Once submitted, user-entered input is posted back into a channel.\n" +
-		"- `/dialog start` - Open an Interactive Dialog with no elements. Once submitted, user's action is posted back into a channel.\n" +
-		"- `/dialog relative-callback-url` - Open an Interactive Dialog with relative callback URL. Once submitted, user's action is posted back into a channel.\n" +
+		//"- `/dialog` - Open an Interactive Dialog. Once submitted, user-entered input is posted back into a channel.\n" +
+		"- `/dialog start` - Start a Parabol Activity.\n" +//Open an Interactive Dialog with no elements. Once submitted, user's action is posted back into a channel.\n" +
+		/*"- `/dialog relative-callback-url` - Open an Interactive Dialog with relative callback URL. Once submitted, user's action is posted back into a channel.\n" +
 		"- `/dialog introduction-text` - Open an Interactive Dialog with optional introduction text. Once submitted, user's action is posted back into a channel.\n" +
 		"- `/dialog error` - Open an Interactive Dialog which always returns an general error.\n" +
 		"- `/dialog error-no-elements` - Open an Interactive Dialog with no elements which always returns an general error.\n" +
+		*/
 		"- `/dialog help` - Show this help text"
 )
 
@@ -34,8 +35,8 @@ func (p *Plugin) registerCommands() error {
 	if err := p.API.RegisterCommand(&model.Command{
 		Trigger:          commandTriggerDialog,
 		AutoComplete:     true,
-		AutoCompleteDesc: "Open an Interactive Dialog.",
-		DisplayName:      "Demo Plugin Command",
+		AutoCompleteDesc: "Start a Parabol Activity.",
+		DisplayName:      "Parabol",
 		AutocompleteData: getCommandDialogAutocompleteData(),
 	}); err != nil {
 		return errors.Wrapf(err, "failed to register %s command", commandTriggerDialog)
@@ -45,10 +46,11 @@ func (p *Plugin) registerCommands() error {
 }
 
 func getCommandDialogAutocompleteData() *model.AutocompleteData {
-	command := model.NewAutocompleteData(commandTriggerDialog, "", "Open an Interactive Dialog.")
+	command := model.NewAutocompleteData(commandTriggerDialog, "", "Start a Parabol Activity")
 
 	command.AddCommand(model.NewAutocompleteData("start", "", "Start a Parabol Activity"))
 
+	/*
 	relativeCallbackURL := model.NewAutocompleteData("relative-callback-url", "", "Open an Interactive Dialog with a relative callback url.")
 	command.AddCommand(relativeCallbackURL)
 
@@ -60,6 +62,7 @@ func getCommandDialogAutocompleteData() *model.AutocompleteData {
 
 	errorNoElements := model.NewAutocompleteData("error-no-elements", "", "Open an Interactive Dialog with error no elements.")
 	command.AddCommand(errorNoElements)
+	*/
 
 	command.AddCommand(model.NewAutocompleteData("help", "", ""))
 
@@ -107,11 +110,15 @@ func (p *Plugin) executeCommandDialog(args *model.CommandArgs) *model.CommandRes
 			Text:         commandDialogHelp,
 		}
 	case "start":
+		data := map[string]interface{}{"foo": "bar"}
+		p.API.PublishWebSocketEvent("open_start_activity_modal", data, &model.WebsocketBroadcast{UserId: args.UserId})
+		/*
 		dialogRequest = model.OpenDialogRequest{
 			TriggerId: args.TriggerId,
 			URL:       fmt.Sprintf("/plugins/%s/start", manifest.Id),
 			Dialog:    p.getStartActivityDialog(user.Email),
 		}
+		*/
 	case "notifications":
 		p.API.KVSet("notifications", []byte(args.ChannelId))
 		return &model.CommandResponse{
