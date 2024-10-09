@@ -1,32 +1,44 @@
-import React, {useMemo} from 'react';
-import {Modal, Form} from 'react-bootstrap';
+import React, {useEffect, useMemo} from 'react';
+import {Modal} from 'react-bootstrap';
 import Spinner from 'react-bootstrap/Spinner';
 import {useDispatch, useSelector} from 'react-redux';
-import {api, useGetTemplatesQuery} from '../../api';
+import {isError, useGetTemplatesQuery} from '../../api';
+import {useStartMeeting} from '../../hooks';
 import {closeStartActivityModal} from '../../reducers';
 import {getAssetsUrl, isStartActivityModalVisible} from '../../selectors';
-import RetroSettings from './retro_settings';
+import MeetingSettings from './meeting_settings';
 
 const StartActivity = () => {
   const isVisible = useSelector(isStartActivityModalVisible);
-  //const {availableTemplates, teams} = meetingTemplates ?? {};
 
   const {data, isLoading} = useGetTemplatesQuery();
   const {availableTemplates, teams} = data ?? {};
-  const [selectedTeam, setSelectedTeam] = React.useState(teams?.[0]);
+  const [selectedTeam, setSelectedTeam] = React.useState<NonNullable<typeof teams>[number]>();
+  const [selectedTemplate, setSelectedTemplate] = React.useState<NonNullable<typeof availableTemplates>[number]>();
+
   const filteredTemplates = useMemo(() => availableTemplates?.filter((template) =>
           template.scope === 'PUBLIC'
           || template.scope === 'TEAM' && template.teamId === selectedTeam?.id
           || template.scope === 'ORGANIZATION' && template.orgId === selectedTeam?.orgId
         ), [availableTemplates, selectedTeam]);
-  const [selectedTemplate, setSelectedTemplate] = React.useState(filteredTemplates?.[0]);
+
+  useEffect(() => {
+    if (!selectedTeam && teams && teams.length > 0) {
+      setSelectedTeam(teams[0]);
+    }
+  }, [teams, selectedTeam]);
+  useEffect(() => {
+    if (!selectedTemplate && filteredTemplates && filteredTemplates.length > 0) {
+      setSelectedTemplate(filteredTemplates[0]);
+    }
+  }, [filteredTemplates, selectedTemplate]);
 
   const onChangeTeam = (teamId: string) => {
-    setSelectedTeam(teams.find((team) => team.id === teamId));
+    setSelectedTeam(teams?.find((team) => team.id === teamId));
   }
 
   const onChangeTemplate = (templateId: string) => {
-    setSelectedTemplate(availableTemplates.find((template) => template.id === templateId));
+    setSelectedTemplate(availableTemplates?.find((template) => template.id === templateId));
   }
 
   const dispatch = useDispatch();
@@ -35,9 +47,20 @@ const StartActivity = () => {
     dispatch(closeStartActivityModal());
   }
 
+  const [startMeeting, {isLoading: isStartActivityLoading, isError: isStartActivityError}] = useStartMeeting();
 
-  console.log('GEORG StartActivity', selectedTeam, selectedTemplate);
+  const handleStart = async () => {
+    if (!selectedTeam || !selectedTemplate) {
+      return;
+    }
+    const res = await startMeeting(selectedTeam.id, selectedTemplate.type, selectedTemplate.id);
 
+    if (isError(res)) {
+      console.error('Failed to start activity', res.error);
+      return;
+    }
+    handleClose();
+  }
 
   const assetsPath = useSelector(getAssetsUrl);
 
@@ -61,7 +84,9 @@ const StartActivity = () => {
             </Modal.Title>
         </Modal.Header>
         <Modal.Body>
-          <div>To see the full details for any activity, visit <a href='https://mattermost.com'>Parabol's Activity Library</a></div>
+          <div>
+            <p>To see the full details for any activity, visit <a href='https://mattermost.com'>Parabol's Activity Library</a></p>
+          </div>
           {isLoading &&
              <Spinner animation="border" role="status">
                <span className="visually-hidden">Loading...</span>
@@ -96,8 +121,8 @@ const StartActivity = () => {
                 ))}
               </select>
             </div>
-            {selectedTeam && selectedTemplate?.type === 'retrospective' && (
-                <RetroSettings settings={selectedTeam.retroSettings} />
+            {selectedTeam && selectedTemplate && ['retrospective', 'action', 'poker'].includes(selectedTemplate.type) && (
+                <MeetingSettings teamId={selectedTeam.id} meetingType={selectedTemplate.type} />
             )}
           </>)}
         </Modal.Body>
@@ -108,7 +133,7 @@ const StartActivity = () => {
           >Cancel</button>
           <button
             className='btn btn-primary save-button'
-            onClick={close}
+            onClick={handleStart}
           >Start Activity</button>
         </Modal.Footer>
       </Modal>

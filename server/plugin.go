@@ -1,9 +1,12 @@
 package main
 
 import (
+	"bufio"
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"sync"
 	"time"
@@ -95,15 +98,60 @@ func (p *Plugin) templates(c *Context, w http.ResponseWriter, r *http.Request) {
 	w.Write(body)
 }
 
-func (p *Plugin) templates2(c *Context, w http.ResponseWriter, r *http.Request) {
-	fmt.Print("GEORG GET TEMPLATES")
-	p.templates(c, w, r)
+func (p *Plugin) query(c *Context, w http.ResponseWriter, r *http.Request) {
+	queryRequest := r.PathValue("query")
+	//variables := r.URL.Query()
+
+	var variables json.RawMessage
+	err := getJson(r.Body, &variables)
+	if err != nil && err != io.EOF {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	config := p.getConfiguration()
+	url := config.ParabolURL
+	privKey := []byte(config.ParabolToken)
+	client := NewSigningClient(privKey)
+
+	query := struct {
+		Query     string    `json:"query"`
+		Variables json.RawMessage `json:"variables"`
+		Email     string    `json:"email"`
+	}{
+		Query: queryRequest,
+		Variables: variables,
+		Email: c.User.Email,
+	}
+	requestBody, err := json.Marshal(query)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	res, err := client.Post(url, "application/json", bufio.NewReader(bytes.NewReader(requestBody)))
+	if err != nil || res.StatusCode != http.StatusOK {
+		w.WriteHeader(http.StatusInternalServerError)
+		fmt.Print("GEORG parabol err", err, res.StatusCode)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	defer res.Body.Close()
+	responseBody, err := io.ReadAll(res.Body)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		fmt.Print("GEORG serialize err", err)
+	} else {
+		w.Write(responseBody)
+	}
 }
 
 func (p *Plugin) updateMeetingSettings(c *Context, w http.ResponseWriter, r *http.Request) {
+	fmt.Print("GEORG updateMeetingSettings", r)
 	var settings SetMeetingSettingsVariables
 	err := json.NewDecoder(r.Body).Decode(&settings)
 	if err != nil {
+		fmt.Print("GEORG updateMeetingSettings, err", err)
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
@@ -116,8 +164,8 @@ func (p *Plugin) ServeHTTP(c *plugin.Context, w http.ResponseWriter, r *http.Req
 	mux := http.NewServeMux()
 	mux.HandleFunc("/start", p.startActivity)
 	mux.HandleFunc("/notify", p.notify)
+	mux.HandleFunc("POST /query/{query}", p.authenticated(p.query))
 	mux.HandleFunc("/templates", p.authenticated(p.templates))
-	mux.HandleFunc("/templates2", p.authenticated(p.templates2))
 	mux.HandleFunc("/meeting-settings", p.authenticated(p.updateMeetingSettings))
 	mux.ServeHTTP(w, r)
 }
