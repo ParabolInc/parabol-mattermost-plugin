@@ -6,11 +6,13 @@ import {GlobalState} from '@mattermost/types/lib/store';
 import manifest from '@/manifest';
 
 import {PluginRegistry} from '@/types/mattermost-webapp';
-import StartActivity from './components/start_activity/start_activity';
-import rootReducer, {openStartActivityModal}  from './reducers';
+import StartActivityModal from './components/start_activity/start_activity_modal';
+import rootReducer, {openPushPostAsReflection, openStartActivityModal}  from './reducers';
 import {getAssetsUrl} from './selectors';
 import {api} from './api';
 import {setupListeners} from '@reduxjs/toolkit/query';
+import SidePanelRoot from './components/sidepanel';
+import PushReflectionModal from './components/push_reflection/push_reflection_modal';
 
 const {id} = manifest;
 
@@ -23,24 +25,32 @@ export default class Plugin {
         setupListeners(store.dispatch);
         registry.registerReducer(rootReducer);
 
-        registry.registerRootComponent(StartActivity);
-        registry.registerWebSocketEventHandler(`custom_${manifest.id}_error`, (message) => {
-            console.error(message);
-        });
-
         // @see https://developers.mattermost.com/extend/plugins/webapp/reference/
-        registry.registerChannelHeaderButtonAction(
-            <img src={`${getAssetsUrl(store.getState())}/parabol.png`} />,
-            // action - a function called when the button is clicked, passed the channel and channel member as arguments
-            () => store.dispatch(openStartActivityModal()),
-            // dropdown_text - string or JSX element shown for the dropdown button description
-            "Start a Parabol Activity",
-        );
+        registry.registerRootComponent(StartActivityModal);
         registry.registerWebSocketEventHandler(`custom_${manifest.id}_open_start_activity_modal`, (message) => {
             store.dispatch(openStartActivityModal());
         });
+        registry.registerRootComponent(PushReflectionModal);
 
-        registry.registerRightHandSidebarComponent("Hello World", 'Hello World');
+        const {toggleRHSPlugin} = registry.registerRightHandSidebarComponent(
+            SidePanelRoot,
+            <div>
+                <img width={24} height={24} src={`${getAssetsUrl(store.getState())}/parabol.png`} />Parabol
+            </div>
+        );
+        registry.registerChannelHeaderButtonAction(
+            <img src={`${getAssetsUrl(store.getState())}/parabol.png`} />,
+            // In the future we want to toggle the side panel
+            //() => store.dispatch(toggleRHSPlugin),
+            () => store.dispatch(openStartActivityModal()),
+            "Start a Parabol Activity",
+        );
+
+        registry.registerPostDropdownMenuAction(
+            <div><span className='MenuItem__icon'><img src={`${getAssetsUrl(store.getState())}/parabol.png`} /></span>Push reflection to Parabol</div>,
+            (postId) => store.dispatch(openPushPostAsReflection(postId)),
+        );
+
         console.log(`Initialized plugin ${id}`);
     }
 }

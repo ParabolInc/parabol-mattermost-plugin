@@ -18,7 +18,6 @@ const (
 
 	dialogStateSome                = "somestate"
 	dialogStateRelativeCallbackURL = "relativecallbackstate"
-	dialogIntroductionText         = "**Some** _introductory_ paragraph in Markdown formatted text with [link](https://mattermost.com)"
 
 	commandDialogHelp = "###### Interactive Parabol Slash Command Help\n" +
 		//"- `/dialog` - Open an Interactive Dialog. Once submitted, user-entered input is posted back into a channel.\n" +
@@ -125,17 +124,11 @@ func (p *Plugin) executeCommandDialog(args *model.CommandArgs) *model.CommandRes
 			ResponseType: model.CommandResponseTypeEphemeral,
 			Text:         "Enabled notifications",
 		}
-	case "relative-callback-url":
-		dialogRequest = model.OpenDialogRequest{
-			TriggerId: args.TriggerId,
-			URL:       fmt.Sprintf("/plugins/%s/dialog/2", manifest.Id),
-			Dialog:    getDialogWithoutElements(dialogStateRelativeCallbackURL),
-		}
-	case "introduction-text":
+	case "dialog":
 		dialogRequest = model.OpenDialogRequest{
 			TriggerId: args.TriggerId,
 			URL:       fmt.Sprintf("/plugins/%s/dialog/1", manifest.Id),
-			Dialog:    getDialogWithIntroductionText(dialogIntroductionText),
+			Dialog:    getDialogWithIntroductionText("**Some** _introductory_ paragraph in Markdown formatted text with [link](https://mattermost.com)"),
 		}
 	case "error":
 		data := map[string]interface{}{"error": "GEORG was here occurred"}

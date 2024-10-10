@@ -6,34 +6,57 @@ import manifest from '@/manifest';
 const {id} = manifest;
 
 type Template = {
-    id: string
-    name: string
-    type: string
-    illustrationUrl: string
-    orgId: string
-    teamId: string
-    scope: string
+  id: string
+  name: string
+  type: string
+  illustrationUrl: string
+  orgId: string
+  teamId: string
+  scope: string
 }
 
 export type MeetingSettings = {
-    id: string
-    checkinEnabled: boolean
-    teamHealthEnabled: boolean
-    disableAnonymity?: boolean
+  id: string
+  checkinEnabled: boolean
+  teamHealthEnabled: boolean
+  disableAnonymity?: boolean
 }
 
 type Team = {
-    id: string
-    name: string
-    orgId: string
-    retroSettings: MeetingSettings
-    pokerSettings: MeetingSettings
-    actionSettings: MeetingSettings
+  id: string
+  name: string
+  orgId: string
+  retroSettings: MeetingSettings
+  pokerSettings: MeetingSettings
+  actionSettings: MeetingSettings
 }
 
 type MeetingTemplatesResponse = {
-    availableTemplates: Template[]
-    teams: Team[]
+  availableTemplates: Template[]
+  teams: Team[]
+}
+
+type ReflectPrompt = {
+  id: string
+  question: string
+  description: string
+}
+
+export type Meeting = {
+  id: string
+  teamId: string
+  name: string
+  meetingType: string
+  templateId: string
+  reflectPrompts?: ReflectPrompt[]
+  isComplete: boolean
+}
+
+export type CreateReflectionInput = {
+  content: string
+  meetingId: string
+  promptId: string
+  sortOrder: number
 }
 
 const joinUrl = (baseUrl: string, url: string) => {
@@ -140,6 +163,19 @@ export const api = createApi({
         body: variables
       }),
     }),
+    getActiveMeetings: builder.query<Meeting[], void>({
+      query: () => ({
+        url: '/query/getActiveMeetings',
+        method: 'POST',
+      })
+    }),
+    createReflection: builder.mutation<void, CreateReflectionInput>({
+      query: (variables) => ({
+        url: '/query/createReflection',
+        method: 'POST',
+        body: variables
+      }),
+    }),
   }),
 })
 
@@ -148,4 +184,14 @@ export const isError = (result: any): result is {error: Error} => {
   return 'error' in result && result.error instanceof Object
 }
 
-export const { useGetTemplatesQuery, useSetMeetingSettingsMutation, useGetMeetingSettingsQuery, useStartRetrospectiveMutation, useStartTeamPromptMutation, useStartCheckInMutation, useStartSprintPokerMutation } = api
+export const {
+  useGetTemplatesQuery,
+  useSetMeetingSettingsMutation,
+  useGetMeetingSettingsQuery,
+  useStartRetrospectiveMutation,
+  useStartTeamPromptMutation,
+  useStartCheckInMutation,
+  useStartSprintPokerMutation,
+  useGetActiveMeetingsQuery,
+  useCreateReflectionMutation,
+} = api
