@@ -27,6 +27,7 @@ export interface PluginRegistry {
     registerLinkTooltipComponent(component: React.ReactNode)
     registerReconnectHandler(handler: any)
     registerPostDropdownMenuComponent(component: React.ReactNode)
+    registerPostDropdownMenuAction(component: React.ReactNode, action: (postId: string) => void)
     registerRootComponent(component: React.ElementType)
 
     // Add more if needed from https://developers.mattermost.com/extend/plugins/webapp/reference

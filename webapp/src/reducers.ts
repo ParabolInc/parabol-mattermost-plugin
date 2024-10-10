@@ -1,23 +1,35 @@
-import {createSlice} from '@reduxjs/toolkit';
+import {createSlice, PayloadAction} from '@reduxjs/toolkit';
 
 import {api} from './api';
 
 const localSlice = createSlice({
     name: 'local',
-    initialState: {isStartActivityModalVisible: false},
+    initialState: {
+        isStartActivityModalVisible: false,
+        pushPostAsReflection: null as string | null
+    },
     reducers: {
         openStartActivityModal: (state) => {
-            console.log('GEORG Open Start Activity Modal');
             state.isStartActivityModalVisible = true;
         },
         closeStartActivityModal: (state) => {
-            console.log('GEORG Close Start Activity Modal');
             state.isStartActivityModalVisible = false;
+        },
+        openPushPostAsReflection: (state, action: PayloadAction<string>) => {
+            state.pushPostAsReflection = action.payload;
+        },
+        closePushPostAsReflection: (state) => {
+            state.pushPostAsReflection = null;
         },
     },
 });
 
-export const {openStartActivityModal, closeStartActivityModal} = localSlice.actions;
+export const {
+    openStartActivityModal,
+    closeStartActivityModal,
+    openPushPostAsReflection,
+    closePushPostAsReflection,
+} = localSlice.actions;
 
 const rootReducer = (state, action) => {
     const apiState = api.reducer(state, action);

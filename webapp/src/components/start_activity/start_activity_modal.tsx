@@ -8,7 +8,7 @@ import {closeStartActivityModal} from '../../reducers';
 import {getAssetsUrl, isStartActivityModalVisible} from '../../selectors';
 import MeetingSettings from './meeting_settings';
 
-const StartActivity = () => {
+const StartActivityModal = () => {
   const isVisible = useSelector(isStartActivityModalVisible);
 
   const {data, isLoading} = useGetTemplatesQuery();
@@ -142,4 +142,4 @@ const StartActivity = () => {
 
 }
 
-export default StartActivity;
+export default StartActivityModal;
