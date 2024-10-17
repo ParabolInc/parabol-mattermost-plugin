@@ -82,12 +82,17 @@ func (p *Plugin) notify(w http.ResponseWriter, r *http.Request) {
 	if err != nil || err2 != nil {
 		return
 	}
-	post, err := p.API.CreatePost(&model.Post{
+
+	var props map[string]interface{}
+	err3 := getJson(r.Body, &props)
+	if err3 != nil {
+		return
+	}
+	_, err = p.API.CreatePost(&model.Post{
 		ChannelId: string(channel),
-		Message:   "Hello, this is a notification from your plugin!",
+		Props:    props,
 		UserId:    string(userId),
 	})
-	fmt.Print("GEORG", post, err)
 }
 
 
@@ -100,7 +105,6 @@ func (p *Plugin) templates(c *Context, w http.ResponseWriter, r *http.Request) {
 
 func (p *Plugin) query(c *Context, w http.ResponseWriter, r *http.Request) {
 	queryRequest := r.PathValue("query")
-	//variables := r.URL.Query()
 
 	var variables json.RawMessage
 	err := getJson(r.Body, &variables)
@@ -147,7 +151,6 @@ func (p *Plugin) query(c *Context, w http.ResponseWriter, r *http.Request) {
 }
 
 func (p *Plugin) updateMeetingSettings(c *Context, w http.ResponseWriter, r *http.Request) {
-	fmt.Print("GEORG updateMeetingSettings", r)
 	var settings SetMeetingSettingsVariables
 	err := json.NewDecoder(r.Body).Decode(&settings)
 	if err != nil {
