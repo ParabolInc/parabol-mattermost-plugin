@@ -10,6 +10,9 @@ DLV_DEBUG_PORT := 2346
 DEFAULT_GOOS := $(shell go env GOOS)
 DEFAULT_GOARCH := $(shell go env GOARCH)
 
+include .env
+export
+
 export GO111MODULE=on
 
 # We need to export GOBIN to allow it to be set
@@ -76,6 +79,13 @@ define prompt_approval
 	fi
 endef
 # ====================================================================================
+
+.PHONY: start-server stop-server
+start-server:
+	docker compose -f docker-compose.yml up -d
+
+stop-server:
+	docker compose -f docker-compose.yml down
 
 .PHONY: patch minor major patch-rc minor-rc major-rc
 
