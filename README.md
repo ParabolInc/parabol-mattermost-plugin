@@ -6,74 +6,25 @@ This plugin is very much work in progress and not yet ready for testing.
 
 ## Requirements
 
-- TODO: Come up with a minimal mattermost version etc.
-
+- Mattermost version 8.0 or later
 - `SiteURL` If the `SiteURL` is not set correctly, some functions like notifications will not work.
+- SSO identity provider for both Mattermost and Parabol
 
 ## Development
 
-For debugging set
+Start up a Mattermost development server
 ```bash
-export MM_DEBUG=1
+make start-server
 ```
+go to http://localhost:8065 and do the initial setup. Create a [personal access token](https://docs.mattermost.com/developer/personal-access-tokens.html)
+and set the environment variable `MM_ADMIN_TOKEN` to the token value.
 
-To avoid having to manually install your plugin, build and deploy your plugin using one of the following options. In order for the below options to work, you must first enable plugin uploads via your config.json or API and restart Mattermost.
 
-```json
-    "PluginSettings" : {
-        ...
-        "EnableUploads" : true
-    }
+Run 
 ```
-
-### Deploying with Local Mode
-
-If your Mattermost server is running locally, you can enable [local mode](https://docs.mattermost.com/administration/mmctl-cli-tool.html#local-mode) to streamline deploying your plugin. Edit your server configuration as follows:
-
-```json
-{
-    "ServiceSettings": {
-        ...
-        "EnableLocalMode": true,
-        "LocalModeSocketLocation": "/var/tmp/mattermost_local.socket"
-    },
-}
-```
-
-and then deploy your plugin:
-```
-make deploy
-```
-
-You may also customize the Unix socket path:
-```bash
-export MM_LOCALSOCKETPATH=/var/tmp/alternate_local.socket
-make deploy
-```
-
-If developing a plugin with a webapp, watch for changes and deploy those automatically:
-```bash
-export MM_SERVICESETTINGS_SITEURL=http://localhost:8065
-export MM_ADMIN_TOKEN=j44acwd8obn78cdcx7koid4jkr
 make watch
 ```
-
-### Deploying with credentials
-
-Alternatively, you can authenticate with the server's API with credentials:
-```bash
-export MM_SERVICESETTINGS_SITEURL=http://localhost:8065
-export MM_ADMIN_USERNAME=admin
-export MM_ADMIN_PASSWORD=password
-make deploy
-```
-
-or with a [personal access token](https://docs.mattermost.com/developer/personal-access-tokens.html):
-```bash
-export MM_SERVICESETTINGS_SITEURL=http://localhost:8065
-export MM_ADMIN_TOKEN=j44acwd8obn78cdcx7koid4jkr
-make deploy
-```
+to start the plugin in development mode. This will watch for webapp changes and automatically rebuild the plugin.
 
 ### Releasing new versions
 

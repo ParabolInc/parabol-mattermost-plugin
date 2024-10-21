@@ -1,0 +1,49 @@
+name: mattermost-preview
+
+services:
+  postgres:
+    image: postgres:13-alpine
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    pids_limit: 100
+    read_only: true
+    tmpfs:
+      - /tmp
+      - /var/run/postgresql
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    environment:
+      - TZ=UTC
+      - POSTGRES_USER
+      - POSTGRES_PASSWORD
+      - POSTGRES_DB
+
+  mattermost:
+    depends_on:
+      - postgres
+    image: mattermost/mattermost-team-edition:8.1.9
+    restart: unless-stopped
+    #security_opt:
+    #  - no-new-privileges:true
+    pids_limit: 200
+    read_only: false
+    tmpfs:
+      - /tmp
+    ports:
+      - 8065:8065
+      - 8443:8443
+    # Having the socket on a mounted volume does not work on arm MacOS
+    #volumes:
+      #- ./tmp:/var/mattermost/tmp:rw
+    environment:
+      - TZ=UTC
+      - MM_SERVICESETTINGS_SITEURL=http://localhost:8065
+      - MM_SERVICESETTINGS_ENABLELOCALMODE=true
+      #- MM_SERVICESETTINGS_LOCALMODESOCKETLOCATION=/var/mattermost/tmp/mattermost_local.sock
+      - MM_SERVICESETTINGS_ENABLEUSERACCESSTOKENS=true
+      - MM_PLUGINSETTINGS_ENABLEUPLOADS=true
+      - MM_SQLSETTINGS_DRIVERNAME
+      - MM_SQLSETTINGS_DATASOURCE
+volumes:
+  postgres-data: {}
