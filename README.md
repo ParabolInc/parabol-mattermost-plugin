@@ -26,6 +26,10 @@ make watch
 ```
 to start the plugin in development mode. This will watch for webapp changes and automatically rebuild the plugin.
 
+Configure the plugin in mattermost, go to System Console -> Plugins -> Parabol and enter
+- Parabol URL: http://host.docker.internal:3001/mattermost
+- Parabol API Token: get this from MATTERMOST_SECRET environment from your Parabol instance
+
 ### Releasing new versions
 
 The version of a plugin is determined at compile time, automatically populating a `version` field in the [plugin manifest](plugin.json):
