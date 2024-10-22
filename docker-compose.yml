@@ -1,4 +1,4 @@
-name: mattermost-preview
+name: mattermost-plugin-dev
 
 services:
   postgres:
@@ -45,5 +45,7 @@ services:
       - MM_PLUGINSETTINGS_ENABLEUPLOADS=true
       - MM_SQLSETTINGS_DRIVERNAME
       - MM_SQLSETTINGS_DATASOURCE
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
 volumes:
   postgres-data: {}

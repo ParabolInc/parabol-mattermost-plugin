@@ -11,7 +11,8 @@ DEFAULT_GOOS := $(shell go env GOOS)
 DEFAULT_GOARCH := $(shell go env GOARCH)
 
 include .env
-export
+export MM_SERVICESETTINGS_SITEURL
+export MM_ADMIN_TOKEN
 
 export GO111MODULE=on
 
