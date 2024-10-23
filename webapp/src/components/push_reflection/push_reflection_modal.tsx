@@ -15,7 +15,13 @@ const PushReflectionModal = () => {
   const postUrl = useSelector(state => getPostURL(state, postId));
   console.log('postUrl', postUrl);
 
-  const {data, isLoading} = useGetActiveMeetingsQuery();
+  const {data, isLoading, refetch} = useGetActiveMeetingsQuery();
+  useEffect(() => {
+    if (postId) {
+      refetch();
+    }
+  }, [postId, refetch]);
+
   const retroMeetings = useMemo(() => data?.filter(({meetingType}) => meetingType === 'retrospective'), [data]);
   const [selectedMeeting, setSelectedMeeting] = React.useState<NonNullable<typeof data>[number]>();
   const [selectedPrompt, setSelectedPrompt] = React.useState<NonNullable<NonNullable<typeof data>[number]['reflectPrompts']>[number]>();
