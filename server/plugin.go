@@ -5,7 +5,6 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"fmt"
 	"io"
 	"net/http"
 	"sync"
@@ -95,14 +94,6 @@ func (p *Plugin) notify(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-
-func (p *Plugin) templates(c *Context, w http.ResponseWriter, r *http.Request) {
-	templates := p.queryMeetingTemplates(c.User.Email)
-	w.Header().Set("Content-Type", "application/json")
-        body, _ := json.Marshal(templates)
-	w.Write(body)
-}
-
 func (p *Plugin) query(c *Context, w http.ResponseWriter, r *http.Request) {
 	queryRequest := r.PathValue("query")
 
@@ -116,7 +107,12 @@ func (p *Plugin) query(c *Context, w http.ResponseWriter, r *http.Request) {
 	config := p.getConfiguration()
 	url := config.ParabolURL
 	privKey := []byte(config.ParabolToken)
-	client := NewSigningClient(privKey)
+	client, err := NewSigningClient(privKey)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte(`{"error": "Signing error"}`))
+		return
+	}
 
 	query := struct {
 		Query     string    `json:"query"`
@@ -128,14 +124,16 @@ func (p *Plugin) query(c *Context, w http.ResponseWriter, r *http.Request) {
 		Email: c.User.Email,
 	}
 	requestBody, err := json.Marshal(query)
+
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte(`{"error": "Marshal error"}`))
 		return
 	}
 	res, err := client.Post(url, "application/json", bufio.NewReader(bytes.NewReader(requestBody)))
 	if err != nil || res.StatusCode != http.StatusOK {
 		w.WriteHeader(http.StatusInternalServerError)
-		fmt.Print("GEORG parabol err", err, res.StatusCode)
+		w.Write([]byte(`{"error": "Parabol server error"}`))
 		return
 	}
 
@@ -144,33 +142,15 @@ func (p *Plugin) query(c *Context, w http.ResponseWriter, r *http.Request) {
 	responseBody, err := io.ReadAll(res.Body)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
-		fmt.Print("GEORG serialize err", err)
-	} else {
-		w.Write(responseBody)
-	}
-}
-
-func (p *Plugin) updateMeetingSettings(c *Context, w http.ResponseWriter, r *http.Request) {
-	var settings SetMeetingSettingsVariables
-	err := json.NewDecoder(r.Body).Decode(&settings)
-	if err != nil {
-		fmt.Print("GEORG updateMeetingSettings, err", err)
-		w.WriteHeader(http.StatusBadRequest)
+		w.Write([]byte(`{"error": "Serialization error"}`))
 		return
 	}
-	p.setMeetingSettings(c.User.Email, settings)
-	w.WriteHeader(http.StatusOK)
+	w.Write(responseBody)
 }
 
-// ServeHTTP demonstrates a plugin that handles HTTP requests by greeting the world.
 func (p *Plugin) ServeHTTP(c *plugin.Context, w http.ResponseWriter, r *http.Request) {
 	mux := http.NewServeMux()
-	mux.HandleFunc("/start", p.startActivity)
-	mux.HandleFunc("/notify", p.notify)
+	mux.HandleFunc("POST /notify", p.notify)
 	mux.HandleFunc("POST /query/{query}", p.authenticated(p.query))
-	mux.HandleFunc("/templates", p.authenticated(p.templates))
-	mux.HandleFunc("/meeting-settings", p.authenticated(p.updateMeetingSettings))
 	mux.ServeHTTP(w, r)
 }
-
-// See https://developers.mattermost.com/extend/plugins/server/reference/
