@@ -9,9 +9,15 @@ import {getAssetsUrl, isStartActivityModalVisible} from '../../selectors';
 import MeetingSettings from './meeting_settings';
 
 const StartActivityModal = () => {
-  const isVisible = useSelector(isStartActivityModalVisible);
 
-  const {data, isLoading} = useGetTemplatesQuery();
+  const {data, isLoading, refetch} = useGetTemplatesQuery();
+  const isVisible = useSelector(isStartActivityModalVisible);
+  useEffect(() => {
+    if (isVisible) {
+      refetch();
+    }
+  }, [isVisible, refetch]);
+
   const {availableTemplates, teams} = data ?? {};
   const [selectedTeam, setSelectedTeam] = React.useState<NonNullable<typeof teams>[number]>();
   const [selectedTemplate, setSelectedTemplate] = React.useState<NonNullable<typeof availableTemplates>[number]>();
@@ -63,10 +69,6 @@ const StartActivityModal = () => {
   }
 
   const assetsPath = useSelector(getAssetsUrl);
-
-  if (!isVisible) {
-    return null;
-  }
 
   return (
     <Modal

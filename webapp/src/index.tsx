@@ -6,7 +6,7 @@ import {GlobalState} from '@mattermost/types/lib/store';
 import manifest from '@/manifest';
 
 import {PluginRegistry} from '@/types/mattermost-webapp';
-import StartActivityModal from './components/start_activity/start_activity_modal';
+import StartActivityModal from './components/start_activity';
 import rootReducer, {openPushPostAsReflection, openStartActivityModal}  from './reducers';
 import {getAssetsUrl} from './selectors';
 import {api} from './api';
