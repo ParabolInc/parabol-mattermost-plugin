@@ -2,7 +2,6 @@ package main
 
 import (
 	"encoding/json"
-	"fmt"
 	"io"
 
 	"github.com/lestrrat-go/jwx/v2/jwa"
@@ -18,7 +17,6 @@ func NewSigningClient(privKey []byte) (*httpsign.Client, error) {
 	signer, err := httpsign.NewJWSSigner(jwa.SignatureAlgorithm("HS256"), privKey, httpsign.NewSignConfig().SignAlg(false),
 		httpsign.Headers("@request-target", "Content-Digest"))
 	if err != nil {
-		fmt.Print("GEORG signer error", err)
 		return nil, err
 	}
 
