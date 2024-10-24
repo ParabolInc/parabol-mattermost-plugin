@@ -6,7 +6,6 @@ const StartActivityModal = lazy(() => import(/* webpackChunkName: 'StartActivity
 
 const StartActivityModalRoot = () => {
   const isVisible = useSelector(isStartActivityModalVisible);
-  console.log('isVisible', isVisible);
   if (!isVisible) {
     return null;
   }

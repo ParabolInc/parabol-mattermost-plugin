@@ -13,7 +13,6 @@ const PushReflectionModal = () => {
   const postId = useSelector(pushPostAsReflection);
   const post = useSelector(state => getPost(state, postId));
   const postUrl = useSelector(state => getPostURL(state, postId));
-  console.log('postUrl', postUrl);
 
   const {data, isLoading, refetch} = useGetActiveMeetingsQuery();
   useEffect(() => {

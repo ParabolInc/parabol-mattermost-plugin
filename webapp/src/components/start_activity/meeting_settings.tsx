@@ -25,7 +25,6 @@ const MeetingSettings = ({teamId, meetingType}: Props) => {
     }
 
     const {checkinEnabled, teamHealthEnabled, disableAnonymity} = data;
-    console.log('GEORG meeting settings', data);
 
     return (
         <div className='form-group'>

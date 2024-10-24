@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"fmt"
 	"io"
 	"net/http"
 	"sync"
@@ -79,19 +80,24 @@ func (p *Plugin) notify(w http.ResponseWriter, r *http.Request) {
 	userId, err := p.API.KVGet(botUserID)
 	channel, err2 := p.API.KVGet("notifications")
 	if err != nil || err2 != nil {
+		fmt.Println("Error getting bot user id or notifications channel", err, err2)
 		return
 	}
+	fmt.Println("User ID", userId, channel)
 
 	var props map[string]interface{}
 	err3 := getJson(r.Body, &props)
 	if err3 != nil {
+		fmt.Println("GEORG err3", err3)
 		return
 	}
+	fmt.Println("GEORG Props", props)
 	_, err = p.API.CreatePost(&model.Post{
-		ChannelId: string(channel),
+		ChannelId: "f3hzc15q63f75meazr8h4ok5ca", //string(channel),
 		Props:    props,
 		UserId:    string(userId),
 	})
+	fmt.Println("GEORG post err", err)
 }
 
 func (p *Plugin) query(c *Context, w http.ResponseWriter, r *http.Request) {
@@ -133,7 +139,8 @@ func (p *Plugin) query(c *Context, w http.ResponseWriter, r *http.Request) {
 	res, err := client.Post(url, "application/json", bufio.NewReader(bytes.NewReader(requestBody)))
 	if err != nil || res.StatusCode != http.StatusOK {
 		w.WriteHeader(http.StatusInternalServerError)
-		w.Write([]byte(`{"error": "Parabol server error"}`))
+		msg := fmt.Sprintf(`{"error": "Parabol server error", "originalError": "%v", "statusCode": "%v"}`, err, res.StatusCode)
+		w.Write([]byte(msg))
 		return
 	}
 
