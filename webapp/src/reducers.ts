@@ -1,4 +1,4 @@
-import {createSlice, PayloadAction} from '@reduxjs/toolkit'
+import {AnyAction, createSlice, PayloadAction} from '@reduxjs/toolkit'
 
 import {api} from './api'
 
@@ -31,7 +31,9 @@ export const {
   closePushPostAsReflection,
 } = localSlice.actions
 
-const rootReducer = (state, action) => {
+export type PluginState = ReturnType<typeof localSlice.reducer> & ReturnType<typeof api.reducer>
+
+const rootReducer = (state: PluginState, action: AnyAction) => {
   const apiState = api.reducer(state, action)
   const localState = localSlice.reducer(state, action)
   return {

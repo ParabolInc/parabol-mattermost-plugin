@@ -77,7 +77,7 @@ string | FetchArgs,
 unknown,
 FetchBaseQueryError
 > = async (args, api, extraOptions) => {
-  const baseUrl = getPluginServerRoute(api.getState())
+  const baseUrl = getPluginServerRoute(api.getState() as any)
   const adjustedArgs =
     typeof args === 'string' ? {
       url: joinUrl(baseUrl, args),

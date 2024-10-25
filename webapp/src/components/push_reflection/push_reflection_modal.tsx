@@ -5,16 +5,18 @@ import {useDispatch, useSelector} from 'react-redux'
 
 import {getPost} from 'mattermost-redux/selectors/entities/posts'
 
+import {GlobalState} from 'mattermost-redux/types/store'
+
 import {useCreateReflectionMutation, useGetActiveMeetingsQuery} from '../../api'
 import {closePushPostAsReflection} from '../../reducers'
 import {getAssetsUrl, getPostURL, pushPostAsReflection} from '../../selectors'
 
-const PostUtils = window.PostUtils
+const PostUtils = (window as any).PostUtils
 
 const PushReflectionModal = () => {
   const postId = useSelector(pushPostAsReflection)
-  const post = useSelector((state) => getPost(state, postId))
-  const postUrl = useSelector((state) => getPostURL(state, postId))
+  const post = useSelector((state: GlobalState) => getPost(state, postId!))
+  const postUrl = useSelector((state: GlobalState) => getPostURL(state, postId!))
 
   const {data, isLoading, refetch} = useGetActiveMeetingsQuery()
   useEffect(() => {
