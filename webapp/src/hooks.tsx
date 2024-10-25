@@ -1,5 +1,6 @@
-import React, {useCallback, useMemo} from 'react';
-import {useStartCheckInMutation, useStartRetrospectiveMutation, useStartSprintPokerMutation, useStartTeamPromptMutation} from './api';
+import React, {useCallback, useMemo} from 'react'
+
+import {useStartCheckInMutation, useStartRetrospectiveMutation, useStartSprintPokerMutation, useStartTeamPromptMutation} from './api'
 
 export const useStartMeeting = () => {
   const [startRetrospective, retroStatus] = useStartRetrospectiveMutation()
@@ -12,8 +13,6 @@ export const useStartMeeting = () => {
   const isSuccess = useMemo(() => retroStatus.isSuccess || checkinStatus.isSuccess || pokerStatus.isSuccess || teamPromptStatus.isSuccess, [retroStatus.isSuccess, checkinStatus.isSuccess, pokerStatus.isSuccess, teamPromptStatus.isSuccess])
 
   const startMeeting = useCallback((teamId: string, meetingType: string, templateId: string) => {
-    if (isLoading) return
-
     switch (meetingType) {
       case 'retrospective':
         return startRetrospective({teamId, templateId})
@@ -23,12 +22,13 @@ export const useStartMeeting = () => {
         return startSprintPoker({teamId, templateId})
       case 'teamPrompt':
         return startTeamPrompt({teamId})
-      default:
+      default: {
         const error = new Error('Invalid meeting type')
         return {
           error,
           unwrap: (): Promise<void> => Promise.reject(error),
         }
+      }
     }
   }, [])
 

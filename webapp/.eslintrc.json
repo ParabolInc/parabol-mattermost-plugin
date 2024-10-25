@@ -155,9 +155,9 @@
       ],
       "indent": [
          2,
-         4,
+         2,
          {
-            "SwitchCase": 0
+            "SwitchCase": 1
          }
       ],
       "jsx-quotes": [
@@ -231,7 +231,7 @@
          "except-parens"
       ],
       "no-confusing-arrow": 2,
-      "no-console": 2,
+      "no-console": 1,
       "no-const-assign": 2,
       "no-constant-condition": 2,
       "no-debugger": 2,
@@ -487,11 +487,11 @@
       "react/jsx-handler-names": 0,
       "react/jsx-indent": [
          2,
-         4
+         2
       ],
       "react/jsx-indent-props": [
          2,
-         4
+         2
       ],
       "react/jsx-key": 2,
       "react/jsx-max-props-per-line": [
@@ -508,7 +508,7 @@
             "ignoreCase": false
          }
       ],
-      "react/jsx-no-literals": 2,
+      "react/jsx-no-literals": 0,
       "react/jsx-no-target-blank": 2,
       "react/jsx-no-undef": 2,
       "react/jsx-pascal-case": 2,
@@ -575,7 +575,7 @@
       ],
       "semi": [
          2,
-         "always"
+         "never"
       ],
       "semi-spacing": [
          2,
@@ -653,9 +653,9 @@
             "@typescript-eslint/explicit-module-boundary-types": 0,
             "@typescript-eslint/indent": [
                2,
-               4,
+               2,
                {
-                  "SwitchCase": 0
+                  "SwitchCase": 1
                }
             ],
             "@typescript-eslint/no-use-before-define": [
