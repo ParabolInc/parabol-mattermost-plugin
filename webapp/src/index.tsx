@@ -1,9 +1,9 @@
 import React from 'react'
 import {Store, AnyAction} from 'redux'
 
-import {GlobalState} from '@mattermost/types/lib/store'
-
 import {setupListeners} from '@reduxjs/toolkit/query'
+
+import {GlobalState} from 'mattermost-redux/types/store'
 
 import manifest from '@/manifest'
 
