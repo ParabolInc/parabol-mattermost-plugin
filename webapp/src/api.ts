@@ -1,9 +1,11 @@
 import {BaseQueryFn, createApi, FetchArgs, fetchBaseQuery, FetchBaseQueryError} from '@reduxjs/toolkit/query/react'
 import {Client4} from 'mattermost-redux/client'
-import {getPluginServerRoute} from './selectors'
-import manifest from '@/manifest';
 
-const {id} = manifest;
+import manifest from '@/manifest'
+
+import {getPluginServerRoute} from './selectors'
+
+const {id} = manifest
 
 type Template = {
   id: string
@@ -71,15 +73,15 @@ const rawBaseQuery = fetchBaseQuery({
 })
 
 const baseQuery: BaseQueryFn<
-  string | FetchArgs,
-  unknown,
-  FetchBaseQueryError
+string | FetchArgs,
+unknown,
+FetchBaseQueryError
 > = async (args, api, extraOptions) => {
   const baseUrl = getPluginServerRoute(api.getState())
   const adjustedArgs =
     typeof args === 'string' ? {
       url: joinUrl(baseUrl, args),
-    }: {
+    } : {
       ...args,
       url: joinUrl(baseUrl, args.url),
     }
@@ -97,12 +99,13 @@ export const api = createApi({
         method: 'POST',
       }),
     }),
+
     // teamId and meetingType are required for convenient cache updates
     setMeetingSettings: builder.mutation<MeetingSettings, MeetingSettings>({
       query: (variables) => ({
         url: '/query/setMeetingSettings',
         method: 'POST',
-        body: variables
+        body: variables,
       }),
       invalidatesTags: () => {
         console.log('invalidating tags')
@@ -115,7 +118,7 @@ export const api = createApi({
         console.log('onCacheEntryAdded')
       },
 
-        /*(result) => {
+      /*(result) => {
         return result ? [{type: 'MeetingSettings', id: result.id}] : ['MeetingSettings']
       }
       */
@@ -124,13 +127,14 @@ export const api = createApi({
       query: (variables) => ({
         url: '/query/getMeetingSettings',
         method: 'POST',
-        body: variables
+        body: variables,
       }),
       providesTags: () => {
         console.log('providing tags')
         return ['MeetingSettings']
-      }
-        /*(result) => {
+      },
+
+      /*(result) => {
         return result ? ['MeetingSettings', {type: 'MeetingSettings', id: result.id}] : ['MeetingSettings']
       }
       */
@@ -139,46 +143,45 @@ export const api = createApi({
       query: (variables) => ({
         url: '/query/startRetrospective',
         method: 'POST',
-        body: variables
+        body: variables,
       }),
     }),
     startCheckIn: builder.mutation<void, {teamId: string}>({
       query: (variables) => ({
         url: '/query/startCheckIn',
         method: 'POST',
-        body: variables
+        body: variables,
       }),
     }),
     startSprintPoker: builder.mutation<void, {teamId: string, templateId: string}>({
       query: (variables) => ({
         url: '/query/startSprintPoker',
         method: 'POST',
-        body: variables
+        body: variables,
       }),
     }),
     startTeamPrompt: builder.mutation<void, {teamId: string}>({
       query: (variables) => ({
         url: '/query/startTeamPrompt',
         method: 'POST',
-        body: variables
+        body: variables,
       }),
     }),
     getActiveMeetings: builder.query<Meeting[], void>({
       query: () => ({
         url: '/query/getActiveMeetings',
         method: 'POST',
-      })
+      }),
     }),
     createReflection: builder.mutation<void, CreateReflectionInput>({
       query: (variables) => ({
         url: '/query/createReflection',
         method: 'POST',
-        body: variables
+        body: variables,
       }),
     }),
   }),
 })
-
 
 export const isError = (result: any): result is {error: Error} => {
   return 'error' in result && result.error instanceof Object

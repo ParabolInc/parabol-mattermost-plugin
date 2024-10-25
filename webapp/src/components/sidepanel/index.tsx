@@ -1,11 +1,13 @@
-import React from 'react';
-import {useGetActiveMeetingsQuery} from '../../api';
-import {useSelector} from 'react-redux';
-import {getCurrentChannelId} from 'mattermost-redux/selectors/entities/common';
+import React from 'react'
+
+import {useSelector} from 'react-redux'
+import {getCurrentChannelId} from 'mattermost-redux/selectors/entities/common'
+
+import {useGetActiveMeetingsQuery} from '../../api'
 
 const SidePanelRoot = () => {
   const {data, isLoading} = useGetActiveMeetingsQuery()
-  const channel = useSelector(getCurrentChannelId);
+  const channel = useSelector(getCurrentChannelId)
   return (
     <div>
       <h1>SidePanelRoot</h1>
@@ -16,8 +18,8 @@ const SidePanelRoot = () => {
         </div>
       ))}
     </div>
-  );
+  )
 }
 
-export default SidePanelRoot;
+export default SidePanelRoot
 
