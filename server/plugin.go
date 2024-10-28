@@ -77,13 +77,9 @@ func (p *Plugin) authenticated(handler HTTPHandlerFuncWithContext) http.HandlerF
 }
 
 func (p *Plugin) notify(w http.ResponseWriter, r *http.Request) {
+	teamId := r.PathValue("teamId")
 	userId, err := p.API.KVGet(botUserID)
-	channel, err2 := p.API.KVGet("notifications")
-	if err != nil || err2 != nil {
-		fmt.Println("Error getting bot user id or notifications channel", err, err2)
-		return
-	}
-	fmt.Println("User ID", userId, channel)
+	fmt.Println("GEORG teamId", teamId)
 
 	var props map[string]interface{}
 	err3 := getJson(r.Body, &props)
@@ -91,13 +87,20 @@ func (p *Plugin) notify(w http.ResponseWriter, r *http.Request) {
 		fmt.Println("GEORG err3", err3)
 		return
 	}
-	fmt.Println("GEORG Props", props)
-	_, err = p.API.CreatePost(&model.Post{
-		ChannelId: "f3hzc15q63f75meazr8h4ok5ca", //string(channel),
-		Props:    props,
-		UserId:    string(userId),
-	})
-	fmt.Println("GEORG post err", err)
+	channels, err2 := p.getChannels(teamId)
+	fmt.Println("GEORG channels", channels)
+	if err2 != nil {
+		fmt.Println("GEORG err2", err2)
+		return
+	}
+	for _, channel := range channels {
+		_, err = p.API.CreatePost(&model.Post{
+			ChannelId: channel,
+			Props:    props,
+			UserId:    string(userId),
+		})
+		fmt.Println("GEORG post err", err)
+	}
 }
 
 func (p *Plugin) query(c *Context, w http.ResponseWriter, r *http.Request) {
@@ -155,9 +158,56 @@ func (p *Plugin) query(c *Context, w http.ResponseWriter, r *http.Request) {
 	w.Write(responseBody)
 }
 
+func (p *Plugin) linkedTeams(c *Context, w http.ResponseWriter, r *http.Request) {
+	channelId := r.PathValue("channelId")
+	teams, err := p.getTeams(channelId)
+
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte(`{"error": "Could not read linked teams"}`))
+		return
+	}
+
+	body, err := json.Marshal(teams)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte(`{"error": "Marshal error"}`))
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.Write(body)
+}
+
+func (p *Plugin) linkTeam(c *Context, w http.ResponseWriter, r *http.Request) {
+	channelId := r.PathValue("channelId")
+	teamId := r.PathValue("teamId")
+	err := p.linkTeamToChannel(channelId, teamId)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		msg := fmt.Sprintf(`{"error": "Error linking team to channel", "originalError": "%v"}`, err)
+		w.Write([]byte(msg))
+		return
+	}
+}
+
+func (p *Plugin) unlinkTeam(c *Context, w http.ResponseWriter, r *http.Request) {
+	channelId := r.PathValue("channelId")
+	teamId := r.PathValue("teamId")
+	err := p.linkTeamToChannel(channelId, teamId)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte(`{"error": "Error unlinking team from channel"}`))
+		return
+	}
+}
+
 func (p *Plugin) ServeHTTP(c *plugin.Context, w http.ResponseWriter, r *http.Request) {
 	mux := http.NewServeMux()
-	mux.HandleFunc("POST /notify", p.notify)
+	mux.HandleFunc("POST /notify/{teamId}", p.notify)
 	mux.HandleFunc("POST /query/{query}", p.authenticated(p.query))
+	mux.HandleFunc("/linkedTeams/{channelId}", p.authenticated(p.linkedTeams))
+	mux.HandleFunc("POST /linkTeam/{channelId}/{teamId}", p.authenticated(p.linkTeam))
+	mux.HandleFunc("POST /unlinkTeam/{channelId}/{teamId}", p.authenticated(p.unlinkTeam))
 	mux.ServeHTTP(w, r)
 }

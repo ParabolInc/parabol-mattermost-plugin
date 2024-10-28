@@ -7,6 +7,7 @@ const localSlice = createSlice({
   initialState: {
     isStartActivityModalVisible: false,
     pushPostAsReflection: null as string | null,
+    isLinkTeamModalVisible: false,
   },
   reducers: {
     openStartActivityModal: (state) => {
@@ -21,6 +22,12 @@ const localSlice = createSlice({
     closePushPostAsReflection: (state) => {
       state.pushPostAsReflection = null
     },
+    openLinkTeamModal: (state) => {
+      state.isLinkTeamModalVisible = true
+    },
+    closeLinkTeamModal: (state) => {
+      state.isLinkTeamModalVisible = false
+    },
   },
 })
 
@@ -29,6 +36,8 @@ export const {
   closeStartActivityModal,
   openPushPostAsReflection,
   closePushPostAsReflection,
+  openLinkTeamModal,
+  closeLinkTeamModal,
 } = localSlice.actions
 
 export type PluginState = ReturnType<typeof localSlice.reducer> & ReturnType<typeof api.reducer>

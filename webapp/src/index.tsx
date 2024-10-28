@@ -6,10 +6,10 @@ import {setupListeners} from '@reduxjs/toolkit/query'
 import {GlobalState} from 'mattermost-redux/types/store'
 
 import manifest from '@/manifest'
-
 import {PluginRegistry} from '@/types/mattermost-webapp'
 
 import StartActivityModal from './components/start_activity'
+import LinkTeamModal from './components/link_team_modal'
 import rootReducer, {openPushPostAsReflection, openStartActivityModal} from './reducers'
 import {getAssetsUrl} from './selectors'
 import {api} from './api'
@@ -28,6 +28,7 @@ export default class Plugin {
 
     // @see https://developers.mattermost.com/extend/plugins/webapp/reference/
     registry.registerRootComponent(StartActivityModal)
+    registry.registerRootComponent(LinkTeamModal)
     registry.registerWebSocketEventHandler(`custom_${manifest.id}_open_start_activity_modal`, (message) => {
       store.dispatch(openStartActivityModal())
     })
@@ -40,15 +41,16 @@ export default class Plugin {
           width={24}
           height={24}
           src={`${getAssetsUrl(store.getState())}/parabol.png`}
-        />Parabol
+        /> Parabol
       </div>,
     )
     registry.registerChannelHeaderButtonAction(
       <img src={`${getAssetsUrl(store.getState())}/parabol.png`}/>,
 
       // In the future we want to toggle the side panel
-      //() => store.dispatch(toggleRHSPlugin),
-      () => store.dispatch(openStartActivityModal()),
+      () => store.dispatch(toggleRHSPlugin),
+
+      //() => store.dispatch(openStartActivityModal()),
       'Start a Parabol Activity',
     )
 

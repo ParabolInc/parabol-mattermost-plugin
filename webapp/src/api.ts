@@ -180,6 +180,24 @@ export const api = createApi({
         body: variables,
       }),
     }),
+    linkedTeams: builder.query<string[], {channelId: string}>({
+      query: ({channelId}) => ({
+        url: `/linkedTeams/${channelId}`,
+        method: 'GET',
+      }),
+    }),
+    linkTeam: builder.mutation<void, {channelId: string, teamId: string}>({
+      query: ({channelId, teamId}) => ({
+        url: `/linkTeam/${channelId}/${teamId}`,
+        method: 'POST',
+      }),
+    }),
+    unlinkTeam: builder.mutation<void, {channelId: string, teamId: string}>({
+      query: ({channelId, teamId}) => ({
+        url: `/unlinkTeam/${channelId}/${teamId}`,
+        method: 'POST',
+      }),
+    }),
   }),
 })
 
@@ -197,4 +215,7 @@ export const {
   useStartSprintPokerMutation,
   useGetActiveMeetingsQuery,
   useCreateReflectionMutation,
+  useLinkedTeamsQuery,
+  useLinkTeamMutation,
+  useUnlinkTeamMutation,
 } = api

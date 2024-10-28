@@ -1,18 +1,52 @@
 import React from 'react'
 
-import {useSelector} from 'react-redux'
+import {useDispatch, useSelector} from 'react-redux'
 import {getCurrentChannelId} from 'mattermost-redux/selectors/entities/common'
 
-import {useGetActiveMeetingsQuery} from '../../api'
+import {useGetActiveMeetingsQuery, useLinkedTeamsQuery} from '../../api'
+import {openLinkTeamModal} from '../../reducers'
 
 const SidePanelRoot = () => {
-  const {data, isLoading} = useGetActiveMeetingsQuery()
-  const channel = useSelector(getCurrentChannelId)
+  const {data: meetings, isLoading} = useGetActiveMeetingsQuery()
+  const channelId = useSelector(getCurrentChannelId)
+  const {data: teams} = useLinkedTeamsQuery({channelId})
+  const dispatch = useDispatch()
+
+  const [selectedTab, setSelectedTab] = React.useState('linked-teams')
+
+  const handleLink = () => {
+    dispatch(openLinkTeamModal())
+    console.log('Link Team')
+  }
+
   return (
     <div>
-      <h1>SidePanelRoot</h1>
-      <h2>Channel: {channel}</h2>
-      {data?.map((meeting) => (
+          <div className='form-group'>
+            <label
+              className='control-label'
+              htmlFor='team'
+            >Choose Parabol Team<span className='error-text'> *</span></label>
+            <div className='input-wrapper'>
+              <select
+                className='form-control'
+                id='team'
+                value={selectedTab}
+                onChange={(e) => setSelectedTab(e.target.value)}
+              >
+                  <option
+                    key='linked-teams'
+                    value='linked-teams'
+                  >Linked Parabol Teams</option>
+              </select>
+            </div>
+            Foo
+          </div>
+
+      <h2>Linked Parabol Teams</h2>
+      <button onClick={handleLink}>Add Team</button>
+      {teams}
+      <h2>Channel: {channelId}</h2>
+      {meetings?.map((meeting) => (
         <div key={meeting.id}>
           <h2>{meeting.name}</h2>
         </div>
