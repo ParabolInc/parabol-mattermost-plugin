@@ -55,6 +55,8 @@ export const getPluginState = (state: GlobalState) => ((state as any)[`plugins-$
 
 export const isStartActivityModalVisible = (state: GlobalState) => getPluginState(state).isStartActivityModalVisible
 
+export const isLinkTeamModalVisible = (state: GlobalState) => getPluginState(state).isLinkTeamModalVisible
+
 export const pushPostAsReflection = (state: GlobalState) => getPluginState(state).pushPostAsReflection
 
 //export const get
