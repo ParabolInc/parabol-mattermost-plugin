@@ -8,8 +8,9 @@ import {useStartMeeting} from '../../hooks'
 import {closeStartActivityModal} from '../../reducers'
 import {getAssetsUrl, isStartActivityModalVisible} from '../../selectors'
 
-import MeetingSettings from './meeting_settings'
 import Select from '../select'
+
+import MeetingSettings from './meeting_settings'
 
 const StartActivityModal = () => {
   const {data, isLoading, refetch} = useGetTemplatesQuery()
