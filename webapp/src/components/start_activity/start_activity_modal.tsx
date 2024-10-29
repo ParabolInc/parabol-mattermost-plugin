@@ -9,6 +9,7 @@ import {closeStartActivityModal} from '../../reducers'
 import {getAssetsUrl, isStartActivityModalVisible} from '../../selectors'
 
 import MeetingSettings from './meeting_settings'
+import Select from '../select'
 
 const StartActivityModal = () => {
   const {data, isLoading, refetch} = useGetTemplatesQuery()
@@ -20,8 +21,8 @@ const StartActivityModal = () => {
   }, [isVisible, refetch])
 
   const {availableTemplates, teams} = data ?? {}
-  const [selectedTeam, setSelectedTeam] = React.useState<NonNullable<typeof teams>[number]>()
-  const [selectedTemplate, setSelectedTemplate] = React.useState<NonNullable<typeof availableTemplates>[number]>()
+  const [selectedTeam, setSelectedTeam] = React.useState<NonNullable<typeof teams>[number] | null>(null)
+  const [selectedTemplate, setSelectedTemplate] = React.useState<NonNullable<typeof availableTemplates>[number] | null>(null)
 
   const filteredTemplates = useMemo(() => availableTemplates?.filter((template) =>
     template.scope === 'PUBLIC' ||
@@ -39,14 +40,6 @@ const StartActivityModal = () => {
       setSelectedTemplate(filteredTemplates[0])
     }
   }, [filteredTemplates, selectedTemplate])
-
-  const onChangeTeam = (teamId: string) => {
-    setSelectedTeam(teams?.find((team) => team.id === teamId))
-  }
-
-  const onChangeTemplate = (templateId: string) => {
-    setSelectedTemplate(availableTemplates?.find((template) => template.id === templateId))
-  }
 
   const dispatch = useDispatch()
 
@@ -107,43 +100,20 @@ const StartActivityModal = () => {
           </Spinner>
         }
         {data && (<>
-          <div className='form-group'>
-            <label
-              className='control-label'
-              htmlFor='team'
-            >Choose Parabol Team<span className='error-text'> *</span></label>
-            <div className='input-wrapper'>
-              <select
-                className='form-control'
-                id='team'
-                value={selectedTeam?.id}
-                onChange={(e) => onChangeTeam(e.target.value)}
-              >
-                {teams?.map((team) => (
-                  <option
-                    key={team.id}
-                    value={team.id}
-                  >{team.name}</option>
-                ))}
-              </select>
-            </div>
-          </div>
-          <div className='form-group'>
-            <label htmlFor='activity'>Choose Activity<span className='error-text'> *</span></label>
-            <select
-              className='form-control'
-              id='activity'
-              value={selectedTemplate?.id}
-              onChange={(e) => onChangeTemplate(e.target.value)}
-            >
-              {filteredTemplates?.map((template) => (
-                <option
-                  key={template.id}
-                  value={template.id}
-                >{template.name}</option>
-              ))}
-            </select>
-          </div>
+          <Select
+            label='Choose Parabol Team'
+            required={true}
+            options={teams ?? []}
+            selected={selectedTeam}
+            onChange={setSelectedTeam}
+          />
+          <Select
+            label='Choose Activity'
+            required={true}
+            options={filteredTemplates ?? []}
+            selected={selectedTemplate}
+            onChange={setSelectedTemplate}
+          />
           {selectedTeam && selectedTemplate && ['retrospective', 'action', 'poker'].includes(selectedTemplate.type) && (
             <MeetingSettings
               teamId={selectedTeam.id}

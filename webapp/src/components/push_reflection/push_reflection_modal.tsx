@@ -10,6 +10,7 @@ import {GlobalState} from 'mattermost-redux/types/store'
 import {useCreateReflectionMutation, useGetActiveMeetingsQuery} from '../../api'
 import {closePushPostAsReflection} from '../../reducers'
 import {getAssetsUrl, getPostURL, pushPostAsReflection} from '../../selectors'
+import Select from '../select'
 
 const PostUtils = (window as any).PostUtils
 
@@ -26,8 +27,8 @@ const PushReflectionModal = () => {
   }, [postId, refetch])
 
   const retroMeetings = useMemo(() => data?.filter(({meetingType}) => meetingType === 'retrospective'), [data])
-  const [selectedMeeting, setSelectedMeeting] = React.useState<NonNullable<typeof data>[number]>()
-  const [selectedPrompt, setSelectedPrompt] = React.useState<NonNullable<NonNullable<typeof data>[number]['reflectPrompts']>[number]>()
+  const [selectedMeeting, setSelectedMeeting] = React.useState<NonNullable<typeof data>[number] | null>(null)
+  const [selectedPrompt, setSelectedPrompt] = React.useState<NonNullable<NonNullable<typeof data>[number]['reflectPrompts']>[number] | null>(null)
 
   const [comment, setComment] = React.useState('')
   const formattedPost = useMemo(() => {
@@ -55,14 +56,6 @@ const PushReflectionModal = () => {
   useEffect(() => {
     setSelectedPrompt(selectedMeeting?.reflectPrompts?.[0])
   }, [selectedMeeting])
-
-  const onChangeMeeting = (meetingId: string) => {
-    setSelectedMeeting(retroMeetings?.find((meeting) => meeting.id === meetingId))
-  }
-
-  const onChangePrompt = (promptId: string) => {
-    setSelectedPrompt(selectedMeeting?.reflectPrompts?.find((prompt) => prompt.id === promptId))
-  }
 
   const dispatch = useDispatch()
 
@@ -156,43 +149,20 @@ const PushReflectionModal = () => {
           </div>
         )}
         {data && (<>
-          <div className='form-group'>
-            <label
-              className='control-label'
-              htmlFor='meeting'
-            >Choose Retro<span className='error-text'> *</span></label>
-            <div className='input-wrapper'>
-              <select
-                className='form-control'
-                id='meeting'
-                value={selectedMeeting?.id}
-                onChange={(e) => onChangeMeeting(e.target.value)}
-              >
-                {retroMeetings?.map((retro) => (
-                  <option
-                    key={retro.id}
-                    value={retro.id}
-                  >{retro.name}</option>
-                ))}
-              </select>
-            </div>
-          </div>
-          <div className='form-group'>
-            <label htmlFor='prompt'>Choose Prompt<span className='error-text'> *</span></label>
-            <select
-              className='form-control'
-              id='prompt'
-              value={selectedPrompt?.id}
-              onChange={(e) => onChangePrompt(e.target.value)}
-            >
-              {selectedMeeting?.reflectPrompts?.map((prompt) => (
-                <option
-                  key={prompt.id}
-                  value={prompt.id}
-                >{prompt.question}</option>
-              ))}
-            </select>
-          </div>
+          <Select
+            label='Choose Retro'
+            required={true}
+            value={selectedMeeting}
+            options={retroMeetings ?? []}
+            onChange={setSelectedMeeting}
+          />
+          <Select
+            label='Choose Prompt'
+            required={true}
+            value={selectedPrompt && {id: selectedPrompt.id, name: selectedPrompt.question}}
+            options={selectedMeeting?.reflectPrompts?.map(({id, question}) => ({id, name: question})) ?? []}
+            onChange={({id}) => setSelectedPrompt(selectedMeeting?.reflectPrompts?.find((prompt) => prompt.id === id) ?? null)}
+          />
         </>)}
       </Modal.Body>
       <Modal.Footer>
