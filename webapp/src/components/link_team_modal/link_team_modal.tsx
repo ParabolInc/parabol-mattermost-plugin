@@ -7,6 +7,8 @@ import {getCurrentChannelId} from 'mattermost-redux/selectors/entities/common'
 import {isError, useGetTemplatesQuery, useLinkedTeamsQuery, useLinkTeamMutation} from '../../api'
 import {closeLinkTeamModal} from '../../reducers'
 import {getAssetsUrl, isLinkTeamModalVisible} from '../../selectors'
+import ReactSelect from 'react-select'
+import Select from '../select'
 
 const LinkTeamModal = () => {
   const isVisible = useSelector(isLinkTeamModalVisible)
@@ -22,7 +24,7 @@ const LinkTeamModal = () => {
   const {data: linkedTeamIds} = useLinkedTeamsQuery({channelId})
 
   const {teams} = teamData ?? {}
-  const [selectedTeam, setSelectedTeam] = React.useState<NonNullable<typeof teams>[number]>()
+  const [selectedTeam, setSelectedTeam] = React.useState<NonNullable<typeof teams>[number] | null>(null)
 
   useEffect(() => {
     if (!selectedTeam && teams && teams.length > 0) {
@@ -30,10 +32,6 @@ const LinkTeamModal = () => {
     }
   }, [teams, selectedTeam])
   const dispatch = useDispatch()
-
-  const onChangeTeam = (teamId: string) => {
-    setSelectedTeam(teams?.find((team) => team.id === teamId))
-  }
 
   const handleClose = () => {
     dispatch(closeLinkTeamModal())
@@ -78,28 +76,15 @@ const LinkTeamModal = () => {
         </Modal.Title>
       </Modal.Header>
       <Modal.Body>
-        {teamData && (<>
-          <div className='form-group'>
-            <label
-              className='control-label'
-              htmlFor='team'
-            >Choose Parabol Team<span className='error-text'> *</span></label>
-            <div className='input-wrapper'>
-              <select
-                className='form-control'
-                id='team'
-                value={selectedTeam?.id}
-                onChange={(e) => onChangeTeam(e.target.value)}
-              >
-                {teams?.map((team) => (
-                  <option
-                    key={team.id}
-                    value={team.id}
-                  >{team.name}</option>
-                ))}
-              </select>
-            </div>
-          </div>
+        {teams && (<>
+          <Select
+            id='team'
+            label='Choose Parabol Team'
+            required={true}
+            value={selectedTeam}
+            options={teams}
+            onChange={setSelectedTeam}
+          />
         </>)}
       </Modal.Body>
       <Modal.Footer>
