@@ -36,10 +36,10 @@ const SidePanelRoot = () => {
             value={selectedTab}
             onChange={(e) => setSelectedTab(e.target.value)}
           >
-              <option
-                key='linked-teams'
-                value='linked-teams'
-              >Linked Parabol Teams</option>
+            <option
+              key='linked-teams'
+              value='linked-teams'
+            >Linked Parabol Teams</option>
           </select>
         </div>
         Foo

@@ -4,10 +4,11 @@ import {useDispatch, useSelector} from 'react-redux'
 
 import {getCurrentChannelId} from 'mattermost-redux/selectors/entities/common'
 
+import ReactSelect from 'react-select'
+
 import {isError, useGetTemplatesQuery, useLinkedTeamsQuery, useLinkTeamMutation} from '../../api'
 import {closeLinkTeamModal} from '../../reducers'
 import {getAssetsUrl, isLinkTeamModalVisible} from '../../selectors'
-import ReactSelect from 'react-select'
 import Select from '../select'
 
 const LinkTeamModal = () => {
