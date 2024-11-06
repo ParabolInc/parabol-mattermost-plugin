@@ -11,7 +11,7 @@ export type SelectProps<T extends IdName> = {
   labelProp?: keyof T
   options: T[]
   selected: T | null
-  onChange: (value: T | null) => void
+  onChange: (value: any | T | null) => void
 }
 
 const LinkTeamModal = <T extends IdName>(props: SelectProps<T>) => {

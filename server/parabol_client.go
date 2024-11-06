@@ -15,7 +15,7 @@ func getJson(body io.ReadCloser, target interface{}) error {
 
 func NewSigningClient(privKey []byte) (*httpsign.Client, error) {
 	signer, err := httpsign.NewJWSSigner(jwa.SignatureAlgorithm("HS256"), privKey, httpsign.NewSignConfig().SignAlg(false),
-		httpsign.Headers("@target-uri", "Content-Digest"))
+		httpsign.Headers("@request-target", "Content-Digest"))
 	if err != nil {
 		return nil, err
 	}
@@ -25,9 +25,8 @@ func NewSigningClient(privKey []byte) (*httpsign.Client, error) {
 }
 
 func NewVerifier(privKey []byte) (*httpsign.Verifier, error) {
-	//verifier, err := httpsign.NewHMACSHA256Verifier(privKey, httpsign.NewVerifyConfig(), httpsign.Headers("@target-uri", "content-digest"))
 	verifier, err := httpsign.NewJWSVerifier(jwa.SignatureAlgorithm("HS256"), privKey, httpsign.NewVerifyConfig(),
-		httpsign.Headers("@target-uri", "content-digest"))
+		httpsign.Headers("@request-target", "content-digest"))
 	if err != nil {
 		return nil, err
 	}

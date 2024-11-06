@@ -54,7 +54,7 @@ const PushReflectionModal = () => {
   }, [data, selectedMeeting])
 
   useEffect(() => {
-    setSelectedPrompt(selectedMeeting?.reflectPrompts?.[0])
+    setSelectedPrompt(selectedMeeting?.reflectPrompts?.[0] ?? null)
   }, [selectedMeeting])
 
   const dispatch = useDispatch()
