@@ -30,7 +30,7 @@ const LinkTeamModal = <T extends IdName>(props: SelectProps<T>) => {
           value={selected && {value: selected.id, label: selected.name}}
           options={options.map(({id, name}) => ({value: id, label: name}))}
           onChange={(value) => onChange(options.find(({id}) => id === value?.value) ?? null)}
-          styles={{menuPortal: (base) => ({...base, zIndex: 9999})}}
+          styles={{ menuPortal: (base) => ({ ...base, zIndex: 9999 }) }}
           menuPortalTarget={document.body}
           isSearchable={true}
           menuPosition='fixed'

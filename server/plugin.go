@@ -14,6 +14,8 @@ import (
 	"github.com/mattermost/mattermost/server/public/model"
 	"github.com/mattermost/mattermost/server/public/plugin"
 	"github.com/mattermost/mattermost/server/public/pluginapi/experimental/bot/logger"
+
+	"github.com/yaronf/httpsign"
 )
 
 const (
@@ -76,21 +78,47 @@ func (p *Plugin) authenticated(handler HTTPHandlerFuncWithContext) http.HandlerF
   }
 }
 
+/*
+  Mattermost strips the plugin path prefix from the request before forwarding it to the plugin.
+  If we want to verify the path of the request, we need to add it back.
+  https://github.com/mattermost/mattermost/blob/751d84bf13aa63f4706843318e45e8ca8401eba5/server/channels/app/plugin_requests.go#L226
+*/
+func (p *Plugin) fixedPath(handler http.HandlerFunc) http.HandlerFunc {
+  // from 10.1 we can use p.API.GetPluginID()
+  pluginID := "co.parabol.action"
+  path := "/plugins/" + pluginID
+  return func(w http.ResponseWriter, r *http.Request) {
+    r.URL.Path = path + r.URL.Path
+    handler(w, r)
+  }
+}
+
 func (p *Plugin) notify(w http.ResponseWriter, r *http.Request) {
+	config := p.getConfiguration()
+	privKey := []byte(config.ParabolToken)
+	verifier, err := NewVerifier(privKey)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte(`{"error": "Verify config error"}`))
+		return
+	}
+	err = httpsign.VerifyRequest("parabol", *verifier, r)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte(`{"error": "Verification error"}`))
+		return
+	}
+
 	teamId := r.PathValue("teamId")
 	userId, err := p.API.KVGet(botUserID)
-	fmt.Println("GEORG teamId", teamId)
 
 	var props map[string]interface{}
 	err3 := getJson(r.Body, &props)
 	if err3 != nil {
-		fmt.Println("GEORG err3", err3)
 		return
 	}
 	channels, err2 := p.getChannels(teamId)
-	fmt.Println("GEORG channels", channels)
 	if err2 != nil {
-		fmt.Println("GEORG err2", err2)
 		return
 	}
 	for _, channel := range channels {
@@ -99,7 +127,6 @@ func (p *Plugin) notify(w http.ResponseWriter, r *http.Request) {
 			Props:    props,
 			UserId:    string(userId),
 		})
-		fmt.Println("GEORG post err", err)
 	}
 }
 
@@ -204,7 +231,7 @@ func (p *Plugin) unlinkTeam(c *Context, w http.ResponseWriter, r *http.Request) 
 
 func (p *Plugin) ServeHTTP(c *plugin.Context, w http.ResponseWriter, r *http.Request) {
 	mux := http.NewServeMux()
-	mux.HandleFunc("POST /notify/{teamId}", p.notify)
+	mux.HandleFunc("POST /notify/{teamId}", p.fixedPath(p.notify))
 	mux.HandleFunc("POST /query/{query}", p.authenticated(p.query))
 	mux.HandleFunc("/linkedTeams/{channelId}", p.authenticated(p.linkedTeams))
 	mux.HandleFunc("POST /linkTeam/{channelId}/{teamId}", p.authenticated(p.linkTeam))
