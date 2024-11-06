@@ -6,7 +6,7 @@ This plugin is very much work in progress and not yet ready for testing.
 
 ## Requirements
 
-- Mattermost version 8.0 or later
+- Mattermost version 8.1 or later
 - `SiteURL` If the `SiteURL` is not set correctly, some functions like notifications will not work.
 - SSO identity provider for both Mattermost and Parabol
 
