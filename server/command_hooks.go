@@ -12,8 +12,8 @@ import (
 
 const (
 	commandTriggerDialog = "parabol"
-	commandDialogHelp = "###### Interactive Parabol Slash Command Help\n" +
-		"- `/parabol start` - Start a Parabol Activity.\n" +//Open an Interactive Dialog with no elements. Once submitted, user's action is posted back into a channel.\n" +
+	commandDialogHelp    = "###### Interactive Parabol Slash Command Help\n" +
+		"- `/parabol start` - Start a Parabol Activity.\n" +
 		"- `/parabol help` - Show this help text"
 )
 
@@ -50,7 +50,7 @@ func (p *Plugin) ExecuteCommand(c *plugin.Context, args *model.CommandArgs) (*mo
 	default:
 		return &model.CommandResponse{
 			ResponseType: model.CommandResponseTypeEphemeral,
-			Text:         fmt.Sprintf("Unknown command: " + args.Command),
+			Text:         fmt.Sprintf("Unknown command: %s", args.Command),
 		}, nil
 	}
 }
@@ -82,7 +82,7 @@ func (p *Plugin) executeCommandDialog(args *model.CommandArgs) *model.CommandRes
 	default:
 		return &model.CommandResponse{
 			ResponseType: model.CommandResponseTypeEphemeral,
-			Text:         fmt.Sprintf("Unknown command: " + command),
+			Text:         fmt.Sprintf("Unknown command: %s", command),
 		}
 	}
 
