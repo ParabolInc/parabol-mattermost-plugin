@@ -17,7 +17,7 @@ func (p *Plugin) OnActivate() error {
 		return errors.Wrap(err, "failed to register commands")
 	}
 
-	botId, err := p.API.EnsureBotUser(&model.Bot{
+	botID, err := p.API.EnsureBotUser(&model.Bot{
 		Username:    "parabol-bot",
 		DisplayName: "Parabol",
 		Description: "Created by the Parabol plugin.",
@@ -28,22 +28,20 @@ func (p *Plugin) OnActivate() error {
 	{
 		bundlePath, err := p.API.GetBundlePath()
 		if err != nil {
-		    return errors.Wrap(err, "failed to get bundle path")
+			return errors.Wrap(err, "failed to get bundle path")
 		}
 
 		profileImage, err := os.ReadFile(filepath.Join(bundlePath, "assets", "parabol.png"))
 		if err != nil {
-		    return errors.Wrap(err, "failed to read profile image")
+			return errors.Wrap(err, "failed to read profile image")
 		}
 
-		if err := p.API.SetProfileImage(botId, profileImage); err != nil {
-		    return errors.Wrap(err, "failed to set profile image")
+		if err := p.API.SetProfileImage(botID, profileImage); err != nil {
+			return errors.Wrap(err, "failed to set profile image")
 		}
 	}
 
-	p.API.KVSet(botUserID, []byte(botId))
-
-	return nil
+	return p.API.KVSet(botUserID, []byte(botID))
 }
 
 // OnDeactivate is invoked when the plugin is deactivated. This is the plugin's last chance to use
@@ -53,4 +51,3 @@ func (p *Plugin) OnActivate() error {
 func (p *Plugin) OnDeactivate() error {
 	return nil
 }
-

@@ -30,7 +30,7 @@ func (p *Plugin) addArrayValue(key string, value string) error {
 
 func (p *Plugin) addArrayValueWithRetries(key string, value string, retries int) error {
 	if retries == 0 {
-		return fmt.Errorf("Failed to add value to array after 10 retries")
+		return fmt.Errorf("failed to add value to array after 10 retries")
 	}
 	oldValue, err := p.API.KVGet(key)
 	if err != nil {
@@ -57,7 +57,7 @@ func (p *Plugin) addArrayValueWithRetries(key string, value string, retries int)
 	if err != nil {
 		return err
 	}
-	return p.addArrayValueWithRetries(key, value, retries - 1)
+	return p.addArrayValueWithRetries(key, value, retries-1)
 }
 
 func (p *Plugin) removeArrayValue(key string, value string) error {
@@ -66,7 +66,7 @@ func (p *Plugin) removeArrayValue(key string, value string) error {
 
 func (p *Plugin) removeArrayValueWithRetries(key string, value string, retries int) error {
 	if retries == 0 {
-		return fmt.Errorf("Failed to remove value from array after 10 retries")
+		return fmt.Errorf("failed to remove value from array after 10 retries")
 	}
 	oldValue, err := p.API.KVGet(key)
 	if err != nil {
@@ -93,26 +93,35 @@ func (p *Plugin) removeArrayValueWithRetries(key string, value string, retries i
 	if err != nil {
 		return err
 	}
-	return p.removeArrayValueWithRetries(key, value, retries - 1)
+	return p.removeArrayValueWithRetries(key, value, retries-1)
 }
 
-func (p *Plugin) getChannels(teamId string) ([]string, error) {
-	key := fmt.Sprintf("channels_%s", teamId)
+func (p *Plugin) getChannels(teamID string) ([]string, error) {
+	key := fmt.Sprintf("channels_%s", teamID)
 	return p.readArray(key)
 }
 
-func (p *Plugin) getTeams(channelId string) ([]string, error) {
-	key := fmt.Sprintf("teams_%s", channelId)
+func (p *Plugin) getTeams(channelID string) ([]string, error) {
+	key := fmt.Sprintf("teams_%s", channelID)
 	return p.readArray(key)
 }
 
-func (p *Plugin) linkTeamToChannel(channelId string, teamId string) error {
-	channelsKey := fmt.Sprintf("teams_%s", channelId)
-	teamsKey := fmt.Sprintf("channels_%s", teamId)
-	err := p.addArrayValue(channelsKey, teamId)
+func (p *Plugin) linkTeamToChannel(channelID string, teamID string) error {
+	channelsKey := fmt.Sprintf("teams_%s", channelID)
+	teamsKey := fmt.Sprintf("channels_%s", teamID)
+	err := p.addArrayValue(channelsKey, teamID)
 	if err != nil {
 		return err
 	}
-	return p.addArrayValue(teamsKey, channelId)
+	return p.addArrayValue(teamsKey, channelID)
 }
 
+func (p *Plugin) unlinkTeamFromChannel(channelID string, teamID string) error {
+	channelsKey := fmt.Sprintf("teams_%s", channelID)
+	teamsKey := fmt.Sprintf("channels_%s", teamID)
+	err := p.removeArrayValue(channelsKey, teamID)
+	if err != nil {
+		return err
+	}
+	return p.removeArrayValue(teamsKey, channelID)
+}
