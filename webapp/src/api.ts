@@ -111,17 +111,6 @@ export const api = createApi({
         console.log('invalidating tags')
         return ['MeetingSettings']
       },
-      onQueryStarted: (variables, {dispatch, queryFulfilled}) => {
-        console.log('onQueryStarted')
-      },
-      onCacheEntryAdded: (cache, action) => {
-        console.log('onCacheEntryAdded')
-      },
-
-      /*(result) => {
-        return result ? [{type: 'MeetingSettings', id: result.id}] : ['MeetingSettings']
-      }
-      */
     }),
     getMeetingSettings: builder.query<MeetingSettings, {teamId: string, meetingType: string}>({
       query: (variables) => ({
@@ -133,11 +122,6 @@ export const api = createApi({
         console.log('providing tags')
         return ['MeetingSettings']
       },
-
-      /*(result) => {
-        return result ? ['MeetingSettings', {type: 'MeetingSettings', id: result.id}] : ['MeetingSettings']
-      }
-      */
     }),
     startRetrospective: builder.mutation<void, {teamId: string, templateId: string}>({
       query: (variables) => ({
@@ -198,6 +182,12 @@ export const api = createApi({
         method: 'POST',
       }),
     }),
+    getConfig: builder.query<{parabolURL: string}, void>({
+      query: () => ({
+        url: '/config',
+        method: 'GET',
+      }),
+    }),
   }),
 })
 
@@ -218,4 +208,5 @@ export const {
   useLinkedTeamsQuery,
   useLinkTeamMutation,
   useUnlinkTeamMutation,
+  useGetConfigQuery,
 } = api

@@ -46,6 +46,11 @@ export const getPluginServerRoute = (state: GlobalState) => {
   return `${basePath}/plugins/${id}`
 }
 
+export const getParabolUrl = (state: GlobalState) => {
+  const siteURL = getPluginRoot(state)
+  return `${siteURL}/parabol`
+}
+
 export const getAssetsUrl = (state: GlobalState) => {
   const siteURL = getPluginRoot(state)
   return `${siteURL}/public`

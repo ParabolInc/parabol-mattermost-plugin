@@ -141,7 +141,7 @@ func (p *Plugin) query(c *Context, w http.ResponseWriter, r *http.Request) {
 	}
 
 	config := p.getConfiguration()
-	url := config.ParabolURL
+	url := config.ParabolURL + "/mattermost"
 	privKey := []byte(config.ParabolToken)
 	client, err := NewSigningClient(privKey)
 	if err != nil {
@@ -229,12 +229,29 @@ func (p *Plugin) unlinkTeam(c *Context, w http.ResponseWriter, r *http.Request) 
 	}
 }
 
+func (p *Plugin) getConfig(c *Context, w http.ResponseWriter, r *http.Request) {
+	config := p.getConfiguration()
+	body, err := json.Marshal(struct{
+		ParabolURL string `json:"parabolURL"`
+	}{
+		ParabolURL: config.ParabolURL,
+	})
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte(`{"error": "Marshal error"}`))
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.Write(body)
+}
+
 func (p *Plugin) ServeHTTP(c *plugin.Context, w http.ResponseWriter, r *http.Request) {
 	mux := http.NewServeMux()
 	mux.HandleFunc("POST /notify/{teamId}", p.fixedPath(p.notify))
 	mux.HandleFunc("POST /query/{query}", p.authenticated(p.query))
-	mux.HandleFunc("/linkedTeams/{channelId}", p.authenticated(p.linkedTeams))
+	mux.HandleFunc("GET /linkedTeams/{channelId}", p.authenticated(p.linkedTeams))
 	mux.HandleFunc("POST /linkTeam/{channelId}/{teamId}", p.authenticated(p.linkTeam))
 	mux.HandleFunc("POST /unlinkTeam/{channelId}/{teamId}", p.authenticated(p.unlinkTeam))
+	mux.HandleFunc("GET /config", p.authenticated(p.getConfig))
 	mux.ServeHTTP(w, r)
 }

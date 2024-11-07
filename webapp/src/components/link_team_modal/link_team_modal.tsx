@@ -4,34 +4,42 @@ import {useDispatch, useSelector} from 'react-redux'
 
 import {getCurrentChannelId} from 'mattermost-redux/selectors/entities/common'
 
-import ReactSelect from 'react-select'
-
-import {isError, useGetTemplatesQuery, useLinkedTeamsQuery, useLinkTeamMutation} from '../../api'
+import {isError, useGetConfigQuery, useGetTemplatesQuery, useLinkedTeamsQuery, useLinkTeamMutation} from '../../api'
 import {closeLinkTeamModal} from '../../reducers'
 import {getAssetsUrl, isLinkTeamModalVisible} from '../../selectors'
 import Select from '../select'
 
 const LinkTeamModal = () => {
   const isVisible = useSelector(isLinkTeamModalVisible)
-  const {data: teamData, refetch} = useGetTemplatesQuery()
+  const channelId = useSelector(getCurrentChannelId)
+  const {data: teamData, refetch: refetchTeams} = useGetTemplatesQuery()
+  const {data: linkedTeamIds, refetch: refetchLinkedTeams} = useLinkedTeamsQuery({channelId})
+  const {data: config} = useGetConfigQuery()
+
   useEffect(() => {
     if (isVisible) {
-      refetch()
+      refetchTeams()
+      refetchLinkedTeams()
     }
-  }, [isVisible, refetch])
+  }, [isVisible, refetchTeams, refetchLinkedTeams])
+
+  const unlinkedTeams = useMemo(() => {
+    if (!teamData || !linkedTeamIds) {
+      return null
+    }
+    const {teams} = teamData
+    return teams.filter((team) => !linkedTeamIds.includes(team.id))
+  }, [teamData, linkedTeamIds])
+  const [selectedTeam, setSelectedTeam] = React.useState<NonNullable<typeof unlinkedTeams>[number] | null>(null)
 
   const [linkTeam] = useLinkTeamMutation()
-  const channelId = useSelector(getCurrentChannelId)
-  const {data: linkedTeamIds} = useLinkedTeamsQuery({channelId})
-
-  const {teams} = teamData ?? {}
-  const [selectedTeam, setSelectedTeam] = React.useState<NonNullable<typeof teams>[number] | null>(null)
 
   useEffect(() => {
-    if (!selectedTeam && teams && teams.length > 0) {
-      setSelectedTeam(teams[0])
+    if (!selectedTeam && unlinkedTeams && unlinkedTeams.length > 0) {
+      setSelectedTeam(unlinkedTeams[0])
     }
-  }, [teams, selectedTeam])
+  }, [unlinkedTeams, selectedTeam])
+
   const dispatch = useDispatch()
 
   const handleClose = () => {
@@ -77,15 +85,18 @@ const LinkTeamModal = () => {
         </Modal.Title>
       </Modal.Header>
       <Modal.Body>
-        {teams && (<>
+        {unlinkedTeams && unlinkedTeams.length > 0 ? (<>
           <Select
-            id='team'
             label='Choose Parabol Team'
             required={true}
             value={selectedTeam}
-            options={teams}
+            options={unlinkedTeams}
             onChange={setSelectedTeam}
           />
+        </>) : (<>
+          <div>
+            <p>All your teams are already linked to this channel. Visit <a href={`${config?.parabolURL}/newteam/`}>Parabol</a> to create new teams.</p>
+          </div>
         </>)}
       </Modal.Body>
       <Modal.Footer>

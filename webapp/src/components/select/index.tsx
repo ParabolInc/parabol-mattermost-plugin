@@ -8,14 +8,13 @@ interface IdName {
 export type SelectProps<T extends IdName> = {
   label?: string
   required?: boolean
-  labelProp?: keyof T
   options: T[]
-  selected: T | null
-  onChange: (value: any | T | null) => void
+  value: T | null
+  onChange: (value: any | null) => void
 }
 
 const LinkTeamModal = <T extends IdName>(props: SelectProps<T>) => {
-  const {label, required, options, selected, onChange} = props
+  const {label, required, options, value, onChange} = props
   return (
     <div className='form-group'>
       {label &&
@@ -27,9 +26,9 @@ const LinkTeamModal = <T extends IdName>(props: SelectProps<T>) => {
       <div className='Input_Wrapper'>
         <ReactSelect
           id='team'
-          value={selected && {value: selected.id, label: selected.name}}
+          value={value && {value: value.id, label: value.name}}
           options={options.map(({id, name}) => ({value: id, label: name}))}
-          onChange={(value) => onChange(options.find(({id}) => id === value?.value) ?? null)}
+          onChange={(newValue) => onChange(options.find(({id}) => id === newValue?.value) ?? null)}
           styles={{menuPortal: (base) => ({...base, zIndex: 9999})}}
           menuPortalTarget={document.body}
           isSearchable={true}
