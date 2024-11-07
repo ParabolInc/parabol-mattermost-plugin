@@ -3,7 +3,7 @@ import {Modal} from 'react-bootstrap'
 import Spinner from 'react-bootstrap/Spinner'
 import {useDispatch, useSelector} from 'react-redux'
 
-import {isError, useGetTemplatesQuery} from '../../api'
+import {isError, useGetConfigQuery, useGetTemplatesQuery} from '../../api'
 import {useStartMeeting} from '../../hooks'
 import {closeStartActivityModal} from '../../reducers'
 import {getAssetsUrl, isStartActivityModalVisible} from '../../selectors'
@@ -14,6 +14,7 @@ import MeetingSettings from './meeting_settings'
 
 const StartActivityModal = () => {
   const {data, isLoading, refetch} = useGetTemplatesQuery()
+  const {data: config} = useGetConfigQuery()
   const isVisible = useSelector(isStartActivityModalVisible)
   useEffect(() => {
     if (isVisible) {
@@ -90,7 +91,7 @@ const StartActivityModal = () => {
       </Modal.Header>
       <Modal.Body>
         <div>
-          <p>To see the full details for any activity, visit <a href='https://mattermost.com'>{"Parabol's Activity Library"}</a></p>
+          <p>To see the full details for any activity, visit <a href={`${config?.parabolURL}/activity-library/`}>{"Parabol's Activity Library"}</a></p>
         </div>
         {isLoading &&
           <Spinner
@@ -105,14 +106,14 @@ const StartActivityModal = () => {
             label='Choose Parabol Team'
             required={true}
             options={teams ?? []}
-            selected={selectedTeam}
+            value={selectedTeam}
             onChange={setSelectedTeam}
           />
           <Select
             label='Choose Activity'
             required={true}
             options={filteredTemplates ?? []}
-            selected={selectedTemplate}
+            value={selectedTemplate}
             onChange={setSelectedTemplate}
           />
           {selectedTeam && selectedTemplate && ['retrospective', 'action', 'poker'].includes(selectedTemplate.type) && (

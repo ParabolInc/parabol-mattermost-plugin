@@ -37,8 +37,6 @@ const PushReflectionModal = () => {
     }
     const quotedMessage = post.message.split('\n').map((line) => `> ${line}`).join('\n')
     return `${quotedMessage}\n\n[See comment in Mattermost](${postUrl})`
-
-    //http://localhost:8065/parabol/pl/7nkyzed7qbgyideowpy6uows3o
   }, [post])
 
   const [createReflection] = useCreateReflectionMutation()
@@ -161,7 +159,7 @@ const PushReflectionModal = () => {
             required={true}
             value={selectedPrompt && {id: selectedPrompt.id, name: selectedPrompt.question}}
             options={selectedMeeting?.reflectPrompts?.map(({id, question}) => ({id, name: question})) ?? []}
-            onChange={({id}) => setSelectedPrompt(selectedMeeting?.reflectPrompts?.find((prompt) => prompt.id === id) ?? null)}
+            onChange={(selected) => selected && setSelectedPrompt(selectedMeeting?.reflectPrompts?.find((prompt) => prompt.id === selected.id) ?? null)}
           />
         </>)}
       </Modal.Body>
