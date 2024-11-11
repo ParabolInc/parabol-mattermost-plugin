@@ -41,7 +41,11 @@ func (p *Plugin) OnActivate() error {
 		}
 	}
 
-	return p.API.KVSet(botUserID, []byte(botID))
+	err2 := p.API.KVSet(botUserID, []byte(botID))
+	if err2 != nil {
+		return errors.Wrap(err2, "failed to store bot user ID")
+	}
+	return nil
 }
 
 // OnDeactivate is invoked when the plugin is deactivated. This is the plugin's last chance to use
