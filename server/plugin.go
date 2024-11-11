@@ -45,6 +45,7 @@ type Context struct {
 type HTTPHandlerFuncWithContext func(c *Context, w http.ResponseWriter, r *http.Request)
 
 func (p *Plugin) createContext(userID string) (*Context, context.CancelFunc) {
+	fmt.Print("createContext", userID, p)
 	user, _ := p.API.GetUser(userID)
 	// TODO check email and email verified
 
@@ -72,6 +73,7 @@ func (p *Plugin) authenticated(handler HTTPHandlerFuncWithContext) http.HandlerF
 			_, _ = w.Write([]byte(`{"error": "Not authorized"}`))
 		}
 
+		fmt.Print("authenticated", userID)
 		context, cancel := p.createContext(userID)
 		defer cancel()
 		handler(context, w, r)
