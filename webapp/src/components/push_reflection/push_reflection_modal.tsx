@@ -1,6 +1,5 @@
 import React, {useEffect, useMemo} from 'react'
 import {Modal} from 'react-bootstrap'
-import Spinner from 'react-bootstrap/Spinner'
 import {useDispatch, useSelector} from 'react-redux'
 
 import {getPost} from 'mattermost-redux/selectors/entities/posts'
@@ -11,6 +10,7 @@ import {useCreateReflectionMutation, useGetActiveMeetingsQuery} from '../../api'
 import {closePushPostAsReflection} from '../../reducers'
 import {getAssetsUrl, getPostURL, pushPostAsReflection} from '../../selectors'
 import Select from '../select'
+import LoadingSpinner from '../loading_spinner'
 
 const PostUtils = (window as any).PostUtils
 
@@ -109,12 +109,7 @@ const PushReflectionModal = () => {
           <p>Choose an open Retro activity and the Prompt where you want to send the Mattermost comment. A reference link back to Mattermost will be inlcuded in the reflection.</p>
         </div>
         {isLoading &&
-        <Spinner
-          animation='border'
-          role='status'
-        >
-          <span className='visually-hidden'>Loading...</span>
-        </Spinner>
+        <LoadingSpinner text='Loading...'/>
         }
         {post && (
           <div className='form-group'>
