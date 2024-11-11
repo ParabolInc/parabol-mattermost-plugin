@@ -1,6 +1,5 @@
 import React, {useEffect, useMemo} from 'react'
 import {Modal} from 'react-bootstrap'
-import Spinner from 'react-bootstrap/Spinner'
 import {useDispatch, useSelector} from 'react-redux'
 
 import {isError, useGetConfigQuery, useGetTemplatesQuery} from '../../api'
@@ -9,6 +8,8 @@ import {closeStartActivityModal} from '../../reducers'
 import {getAssetsUrl, isStartActivityModalVisible} from '../../selectors'
 
 import Select from '../select'
+
+import LoadingSpinner from '../loading_spinner'
 
 import MeetingSettings from './meeting_settings'
 
@@ -94,12 +95,7 @@ const StartActivityModal = () => {
           <p>To see the full details for any activity, visit <a href={`${config?.parabolURL}/activity-library/`}>{"Parabol's Activity Library"}</a></p>
         </div>
         {isLoading &&
-          <Spinner
-            animation='border'
-            role='status'
-          >
-            <span className='visually-hidden'>Loading...</span>
-          </Spinner>
+          <LoadingSpinner text='Loading...'/>
         }
         {data && (<>
           <Select
