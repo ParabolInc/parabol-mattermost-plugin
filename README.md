@@ -2,7 +2,7 @@
 
 ## WIP ##
 
-This plugin is very much work in progress and not yet ready for testing.
+This plugin is still work in progress and not yet ready for production use.
 
 ## Requirements
 
@@ -17,18 +17,16 @@ Start up a Mattermost development server
 make start-server
 ```
 go to http://localhost:8065 and do the initial setup. Create a [personal access token](https://docs.mattermost.com/developer/personal-access-tokens.html)
-and set the environment variable `MM_ADMIN_TOKEN` to the token value.
-
-
-Run 
+and set the environment variable `MM_ADMIN_TOKEN` to the token value. Run 
 ```
+export MM_ADMIN_TOKEN=<your personal access token>
 make watch
 ```
 to start the plugin in development mode. This will watch for webapp changes and automatically rebuild the plugin.
 
 Configure the plugin in mattermost, go to System Console -> Plugins -> Parabol and enter
-- Parabol URL: http://host.docker.internal:3001/mattermost
-- Parabol API Token: get this from MATTERMOST_SECRET environment from your Parabol instance
+- Parabol URL: http://host.docker.internal:3001
+- Parabol API Token: get this from MATTERMOST_SECRET environment of your Parabol instance
 
 ### Releasing new versions
 
