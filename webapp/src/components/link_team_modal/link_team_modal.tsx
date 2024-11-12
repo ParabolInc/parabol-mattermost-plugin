@@ -2,34 +2,27 @@ import React, {useEffect, useMemo} from 'react'
 import {Modal} from 'react-bootstrap'
 import {useDispatch, useSelector} from 'react-redux'
 
-import {getCurrentChannelId} from 'mattermost-redux/selectors/entities/common'
+import {getCurrentChannel} from 'mattermost-redux/selectors/entities/channels'
 
-import {isError, useGetConfigQuery, useGetTemplatesQuery, useLinkedTeamsQuery, useLinkTeamMutation} from '../../api'
+import {isError, useConfigQuery, useLinkTeamMutation} from '../../api'
 import {closeLinkTeamModal} from '../../reducers'
 import {getAssetsUrl, isLinkTeamModalVisible} from '../../selectors'
 import Select from '../select'
+import useLinkedTeams from '../../hooks/use_linked_teams'
 
 const LinkTeamModal = () => {
   const isVisible = useSelector(isLinkTeamModalVisible)
-  const channelId = useSelector(getCurrentChannelId)
-  const {data: teamData, refetch: refetchTeams} = useGetTemplatesQuery()
-  const {data: linkedTeamIds, refetch: refetchLinkedTeams} = useLinkedTeamsQuery({channelId})
-  const {data: config} = useGetConfigQuery()
+  const {unlinkedTeams, refetch: refetchUnlinkedTeams} = useLinkedTeams()
+  const channel = useSelector(getCurrentChannel)
+  const {id: channelId, display_name: channelName} = channel
+  const {data: config} = useConfigQuery()
 
   useEffect(() => {
     if (isVisible) {
-      refetchTeams()
-      refetchLinkedTeams()
+      refetchUnlinkedTeams()
     }
-  }, [isVisible, refetchTeams, refetchLinkedTeams])
+  }, [isVisible, refetchUnlinkedTeams])
 
-  const unlinkedTeams = useMemo(() => {
-    if (!teamData || !linkedTeamIds) {
-      return null
-    }
-    const {teams} = teamData
-    return teams.filter((team) => !linkedTeamIds.includes(team.id))
-  }, [teamData, linkedTeamIds])
   const [selectedTeam, setSelectedTeam] = React.useState<NonNullable<typeof unlinkedTeams>[number] | null>(null)
 
   const [linkTeam] = useLinkTeamMutation()
@@ -81,7 +74,7 @@ const LinkTeamModal = () => {
             height={36}
             src={`${assetsPath}/parabol.png`}
           />
-          {'Link a Parabol Team to this Channel'}
+          {` Link a Parabol Team to ${channelName}`}
         </Modal.Title>
       </Modal.Header>
       <Modal.Body>

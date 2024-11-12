@@ -6,7 +6,7 @@ import {getPost} from 'mattermost-redux/selectors/entities/posts'
 
 import {GlobalState} from 'mattermost-redux/types/store'
 
-import {useCreateReflectionMutation, useGetActiveMeetingsQuery} from '../../api'
+import {useCreateReflectionMutation, useActiveMeetingsQuery} from '../../api'
 import {closePushPostAsReflection} from '../../reducers'
 import {getAssetsUrl, getPostURL, pushPostAsReflection} from '../../selectors'
 import Select from '../select'
@@ -19,7 +19,7 @@ const PushReflectionModal = () => {
   const post = useSelector((state: GlobalState) => getPost(state, postId!))
   const postUrl = useSelector((state: GlobalState) => getPostURL(state, postId!))
 
-  const {data, isLoading, refetch} = useGetActiveMeetingsQuery()
+  const {data, isLoading, refetch} = useActiveMeetingsQuery()
   useEffect(() => {
     if (postId) {
       refetch()
@@ -101,7 +101,7 @@ const PushReflectionModal = () => {
             height={36}
             src={`${assetsPath}/parabol.png`}
           />
-          {'Start a Parabol Activity'}
+          {' Add Comment to Parabol Activity'}
         </Modal.Title>
       </Modal.Header>
       <Modal.Body>
@@ -143,7 +143,7 @@ const PushReflectionModal = () => {
         )}
         {data && (<>
           <Select
-            label='Choose Retro'
+            label='Choose Activity'
             required={true}
             value={selectedMeeting}
             options={retroMeetings ?? []}

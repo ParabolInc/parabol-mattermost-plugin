@@ -7,7 +7,7 @@ import {getPluginServerRoute} from './selectors'
 
 const {id} = manifest
 
-type Template = {
+type MeetingTemplate = {
   id: string
   name: string
   type: string
@@ -24,18 +24,16 @@ export type MeetingSettings = {
   disableAnonymity?: boolean
 }
 
+type TeamMember = {
+  id: string
+  email: string
+}
+
 type Team = {
   id: string
   name: string
   orgId: string
-  retroSettings: MeetingSettings
-  pokerSettings: MeetingSettings
-  actionSettings: MeetingSettings
-}
-
-type MeetingTemplatesResponse = {
-  availableTemplates: Template[]
-  teams: Team[]
+  teamMembers: TeamMember[]
 }
 
 type ReflectPrompt = {
@@ -91,15 +89,14 @@ FetchBaseQueryError
 export const api = createApi({
   reducerPath: `plugins-${id}`,
   baseQuery,
-  tagTypes: ['MeetingTemplates', 'MeetingSettings'],
+  tagTypes: ['Teams', 'MeetingTemplates', 'MeetingSettings', 'Meetings'],
   endpoints: (builder) => ({
-    getTemplates: builder.query<MeetingTemplatesResponse, void>({
+    templates: builder.query<MeetingTemplate[], void>({
       query: () => ({
         url: '/query/meetingTemplates',
         method: 'POST',
       }),
     }),
-
     // teamId and meetingType are required for convenient cache updates
     setMeetingSettings: builder.mutation<MeetingSettings, MeetingSettings>({
       query: (variables) => ({
@@ -107,21 +104,15 @@ export const api = createApi({
         method: 'POST',
         body: variables,
       }),
-      invalidatesTags: () => {
-        console.log('invalidating tags')
-        return ['MeetingSettings']
-      },
+      invalidatesTags: ['MeetingSettings']
     }),
-    getMeetingSettings: builder.query<MeetingSettings, {teamId: string, meetingType: string}>({
+    meetingSettings: builder.query<MeetingSettings, {teamId: string, meetingType: string}>({
       query: (variables) => ({
-        url: '/query/getMeetingSettings',
+        url: '/query/meetingSettings',
         method: 'POST',
         body: variables,
       }),
-      providesTags: () => {
-        console.log('providing tags')
-        return ['MeetingSettings']
-      },
+      providesTags: ['MeetingSettings']
     }),
     startRetrospective: builder.mutation<void, {teamId: string, templateId: string}>({
       query: (variables) => ({
@@ -129,6 +120,7 @@ export const api = createApi({
         method: 'POST',
         body: variables,
       }),
+      invalidatesTags: ['Meetings']
     }),
     startCheckIn: builder.mutation<void, {teamId: string}>({
       query: (variables) => ({
@@ -136,6 +128,7 @@ export const api = createApi({
         method: 'POST',
         body: variables,
       }),
+      invalidatesTags: ['Meetings']
     }),
     startSprintPoker: builder.mutation<void, {teamId: string, templateId: string}>({
       query: (variables) => ({
@@ -143,6 +136,7 @@ export const api = createApi({
         method: 'POST',
         body: variables,
       }),
+      invalidatesTags: ['Meetings']
     }),
     startTeamPrompt: builder.mutation<void, {teamId: string}>({
       query: (variables) => ({
@@ -150,12 +144,14 @@ export const api = createApi({
         method: 'POST',
         body: variables,
       }),
+      invalidatesTags: ['Meetings']
     }),
-    getActiveMeetings: builder.query<Meeting[], void>({
+    activeMeetings: builder.query<Meeting[], void>({
       query: () => ({
-        url: '/query/getActiveMeetings',
+        url: '/query/activeMeetings',
         method: 'POST',
       }),
+      providesTags: ['Meetings']
     }),
     createReflection: builder.mutation<void, CreateReflectionInput>({
       query: (variables) => ({
@@ -164,25 +160,35 @@ export const api = createApi({
         body: variables,
       }),
     }),
+    teams: builder.query<Team[], void>({
+      query: () => ({
+        url: '/query/teams',
+        method: 'POST',
+      }),
+      providesTags: ['Teams'],
+    }),
     linkedTeams: builder.query<string[], {channelId: string}>({
       query: ({channelId}) => ({
         url: `/linkedTeams/${channelId}`,
         method: 'GET',
       }),
+      providesTags: ['Teams'],
     }),
     linkTeam: builder.mutation<void, {channelId: string, teamId: string}>({
       query: ({channelId, teamId}) => ({
         url: `/linkTeam/${channelId}/${teamId}`,
         method: 'POST',
       }),
+      invalidatesTags: ['Teams'],
     }),
     unlinkTeam: builder.mutation<void, {channelId: string, teamId: string}>({
       query: ({channelId, teamId}) => ({
         url: `/unlinkTeam/${channelId}/${teamId}`,
         method: 'POST',
       }),
+      invalidatesTags: ['Teams'],
     }),
-    getConfig: builder.query<{parabolURL: string}, void>({
+    config: builder.query<{parabolURL: string}, void>({
       query: () => ({
         url: '/config',
         method: 'GET',
@@ -196,17 +202,18 @@ export const isError = (result: any): result is {error: Error} => {
 }
 
 export const {
-  useGetTemplatesQuery,
+  useTemplatesQuery,
   useSetMeetingSettingsMutation,
-  useGetMeetingSettingsQuery,
+  useMeetingSettingsQuery,
   useStartRetrospectiveMutation,
   useStartTeamPromptMutation,
   useStartCheckInMutation,
   useStartSprintPokerMutation,
-  useGetActiveMeetingsQuery,
+  useActiveMeetingsQuery,
   useCreateReflectionMutation,
   useLinkedTeamsQuery,
+  useTeamsQuery,
   useLinkTeamMutation,
   useUnlinkTeamMutation,
-  useGetConfigQuery,
+  useConfigQuery,
 } = api

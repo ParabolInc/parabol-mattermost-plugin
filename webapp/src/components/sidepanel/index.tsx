@@ -1,35 +1,25 @@
 import React from 'react'
 
-import {useDispatch, useSelector} from 'react-redux'
-import {getCurrentChannelId} from 'mattermost-redux/selectors/entities/common'
+import {useDispatch} from 'react-redux'
 
-import {useGetActiveMeetingsQuery, useGetTemplatesQuery, useLinkedTeamsQuery} from '../../api'
-import {openLinkTeamModal, openStartActivityModal} from '../../reducers'
+import LinkedTeams from './linked_teams'
+import ActiveMeetings from './active_meetings'
+import styled from 'styled-components'
+
+const Panel = styled.div`
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  padding: 16px 8px;
+`
 
 const SidePanelRoot = () => {
-  const {data: meetings, isLoading} = useGetActiveMeetingsQuery()
-  const channelId = useSelector(getCurrentChannelId)
-  const {data: linkedTeams} = useLinkedTeamsQuery({channelId})
-  const {data} = useGetTemplatesQuery()
-  const {teams} = data ?? {}
-
   const dispatch = useDispatch()
 
   const [selectedTab, setSelectedTab] = React.useState('linked-teams')
 
-  const handleLink = () => {
-    dispatch(openLinkTeamModal())
-  }
-
-  const handleStartActivity = () => {
-    dispatch(openStartActivityModal())
-  }
-
-  console.log('linkedTeams', linkedTeams)
-  console.log('teams', teams)
-
   return (
-    <div>
+    <Panel>
       {/*
       <div className='form-group'>
         <label
@@ -51,23 +41,9 @@ const SidePanelRoot = () => {
         </div>
       </div>
       */}
-
-      <h2>Linked Parabol Teams</h2>
-      <button onClick={handleLink}>Add Team</button>
-      {teams?.map((team) => (linkedTeams?.includes(team.id) ? (
-        <div key={team.id}>
-          <h3>{team.name}</h3>
-        </div>
-      ) : <div key={team.id}>Unlinked {team.name}</div>),
-      )}
-      <h2>Active Meetings</h2>
-      <button onClick={handleStartActivity}>Start Activity</button>
-      {meetings?.map((meeting) => (
-        <div key={meeting.id}>
-          <h3>{meeting.name}</h3>
-        </div>
-      ))}
-    </div>
+      <LinkedTeams />
+      <ActiveMeetings />
+    </Panel>
   )
 }
 
