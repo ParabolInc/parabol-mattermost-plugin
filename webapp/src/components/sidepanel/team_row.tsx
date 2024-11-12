@@ -1,9 +1,12 @@
 import React from 'react'
-import {isError, useConfigQuery, useLinkedTeamsQuery, useUnlinkTeamMutation} from '../../api'
+
 import {useSelector} from 'react-redux'
 import {getCurrentChannelId} from 'mattermost-redux/selectors/entities/common'
-import MoreMenu from '../menu'
+
 import styled from 'styled-components'
+
+import MoreMenu from '../menu'
+import {isError, useConfigQuery, useLinkedTeamsQuery, useUnlinkTeamMutation} from '../../api'
 import plural from '../../utils'
 
 const Card = styled.div`
@@ -59,7 +62,6 @@ const TeamRow = ({team}: Props) => {
 
     if (isError(res)) {
       console.error('Failed to unlink team', res.error)
-      return
     }
   }
 
@@ -71,14 +73,20 @@ const TeamRow = ({team}: Props) => {
           <MemberCount>{`${teamMembers.length} ${plural(teamMembers.length, 'member')}`}</MemberCount>
         </Col>
         <Col>
-          <MoreMenu options={[{
-            label: 'Unlink',
-            onClick: handleUnlink,
-          }]}/>
+          <MoreMenu
+            options={[{
+              label: 'Unlink',
+              onClick: handleUnlink,
+            }]}
+          />
         </Col>
       </Row>
       <Row>
-        <a href={`${config?.parabolURL}/team/${id}`} target='_blank'>{"View in Parabol"}</a>
+        <a
+          href={`${config?.parabolURL}/team/${id}`}
+          target='_blank'
+          rel='noreferrer'
+        >{'View in Parabol'}</a>
       </Row>
     </Card>
   )

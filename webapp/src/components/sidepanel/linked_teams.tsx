@@ -1,9 +1,12 @@
 import React from 'react'
 
 import {useDispatch} from 'react-redux'
+
 import {openLinkTeamModal} from '../../reducers'
-import TeamRow from './team_row'
+
 import useLinkedTeams from '../../hooks/use_linked_teams'
+
+import TeamRow from './team_row'
 
 const LinkedTeams = () => {
   const {linkedTeams, refetch} = useLinkedTeams()
@@ -18,7 +21,12 @@ const LinkedTeams = () => {
     <div>
       <h2>Linked Parabol Teams</h2>
       <button onClick={handleLink}>Link Team</button>
-      {linkedTeams?.map((team) => <TeamRow key={team.id} team={team} />)}
+      {linkedTeams?.map((team) => (
+        <TeamRow
+          key={team.id}
+          team={team}
+        />
+      ))}
     </div>
   )
 }

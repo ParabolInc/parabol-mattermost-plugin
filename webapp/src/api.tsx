@@ -97,6 +97,7 @@ export const api = createApi({
         method: 'POST',
       }),
     }),
+
     // teamId and meetingType are required for convenient cache updates
     setMeetingSettings: builder.mutation<MeetingSettings, MeetingSettings>({
       query: (variables) => ({
@@ -104,7 +105,7 @@ export const api = createApi({
         method: 'POST',
         body: variables,
       }),
-      invalidatesTags: ['MeetingSettings']
+      invalidatesTags: ['MeetingSettings'],
     }),
     meetingSettings: builder.query<MeetingSettings, {teamId: string, meetingType: string}>({
       query: (variables) => ({
@@ -112,7 +113,7 @@ export const api = createApi({
         method: 'POST',
         body: variables,
       }),
-      providesTags: ['MeetingSettings']
+      providesTags: ['MeetingSettings'],
     }),
     startRetrospective: builder.mutation<void, {teamId: string, templateId: string}>({
       query: (variables) => ({
@@ -120,7 +121,7 @@ export const api = createApi({
         method: 'POST',
         body: variables,
       }),
-      invalidatesTags: ['Meetings']
+      invalidatesTags: ['Meetings'],
     }),
     startCheckIn: builder.mutation<void, {teamId: string}>({
       query: (variables) => ({
@@ -128,7 +129,7 @@ export const api = createApi({
         method: 'POST',
         body: variables,
       }),
-      invalidatesTags: ['Meetings']
+      invalidatesTags: ['Meetings'],
     }),
     startSprintPoker: builder.mutation<void, {teamId: string, templateId: string}>({
       query: (variables) => ({
@@ -136,7 +137,7 @@ export const api = createApi({
         method: 'POST',
         body: variables,
       }),
-      invalidatesTags: ['Meetings']
+      invalidatesTags: ['Meetings'],
     }),
     startTeamPrompt: builder.mutation<void, {teamId: string}>({
       query: (variables) => ({
@@ -144,14 +145,14 @@ export const api = createApi({
         method: 'POST',
         body: variables,
       }),
-      invalidatesTags: ['Meetings']
+      invalidatesTags: ['Meetings'],
     }),
     activeMeetings: builder.query<Meeting[], void>({
       query: () => ({
         url: '/query/activeMeetings',
         method: 'POST',
       }),
-      providesTags: ['Meetings']
+      providesTags: ['Meetings'],
     }),
     createReflection: builder.mutation<void, CreateReflectionInput>({
       query: (variables) => ({

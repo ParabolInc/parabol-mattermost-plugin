@@ -12,6 +12,7 @@ import StartActivityModal from './components/start_activity'
 import LinkTeamModal from './components/link_team_modal'
 import rootReducer, {openPushPostAsReflection, openStartActivityModal} from './reducers'
 import {getAssetsUrl} from './selectors'
+
 //import {api} from './api'
 import SidePanelRoot from './components/sidepanel'
 import PushReflectionModal from './components/push_reflection/push_reflection_modal'
@@ -37,7 +38,7 @@ export default class Plugin {
 
     const {toggleRHSPlugin} = registry.registerRightHandSidebarComponent(
       SidePanelRoot,
-      <PanelTitle />,
+      <PanelTitle/>,
     )
     registry.registerChannelHeaderButtonAction(
       <img src={`${getAssetsUrl(store.getState())}/parabol.png`}/>,

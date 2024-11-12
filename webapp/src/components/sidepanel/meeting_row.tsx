@@ -1,9 +1,12 @@
 import React, {useMemo} from 'react'
-import {isError, useConfigQuery, useLinkedTeamsQuery, useTeamsQuery, useUnlinkTeamMutation} from '../../api'
+
 import {useSelector} from 'react-redux'
 import {getCurrentChannelId} from 'mattermost-redux/selectors/entities/common'
-import MoreMenu from '../menu'
+
 import styled from 'styled-components'
+
+import MoreMenu from '../menu'
+import {isError, useConfigQuery, useLinkedTeamsQuery, useTeamsQuery, useUnlinkTeamMutation} from '../../api'
 import plural from '../../utils'
 
 const Card = styled.div`
@@ -59,7 +62,11 @@ const MeetingRow = ({meeting}: Props) => {
         </Col>
       </Row>
       <Row>
-        <a href={`${config?.parabolURL}/meet/${id}`} target='_blank'>{"Join Meeting"}</a>
+        <a
+          href={`${config?.parabolURL}/meet/${id}`}
+          target='_blank'
+          rel='noreferrer'
+        >{'Join Meeting'}</a>
       </Row>
     </Card>
   )
