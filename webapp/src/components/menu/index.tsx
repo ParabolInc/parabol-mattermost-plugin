@@ -1,8 +1,8 @@
-import {IconButton, Menu, MenuItem} from "@mui/material"
+import {IconButton, Menu, MenuItem} from '@mui/material'
 import {
-    DotsVerticalIcon,
+  DotsVerticalIcon,
 } from '@mattermost/compass-icons/components'
-import React from "react"
+import React from 'react'
 
 type MenuOption = {
   label: string
@@ -16,7 +16,7 @@ type Props = {
 const MoreMenu = ({options}: Props) => {
   const [anchorEl, setAnchorEl] = React.useState<HTMLElement | null>(null)
   const open = Boolean(anchorEl)
-  const handleOpen= (event: React.MouseEvent<HTMLElement>) => {
+  const handleOpen = (event: React.MouseEvent<HTMLElement>) => {
     setAnchorEl(event.currentTarget)
   }
   const handleClose = () => {
@@ -25,17 +25,17 @@ const MoreMenu = ({options}: Props) => {
   return (
     <div>
       <IconButton
-        aria-label="more"
-        id="long-button"
+        aria-label='more'
+        id='long-button'
         aria-controls={open ? 'long-menu' : undefined}
         aria-expanded={open ? 'true' : undefined}
-        aria-haspopup="true"
+        aria-haspopup='true'
         onClick={handleOpen}
       >
-        <DotsVerticalIcon />
+        <DotsVerticalIcon/>
       </IconButton>
       <Menu
-        id="long-menu"
+        id='long-menu'
         MenuListProps={{
           'aria-labelledby': 'long-button',
         }}
@@ -44,7 +44,14 @@ const MoreMenu = ({options}: Props) => {
         onClose={handleClose}
       >
         {options.map(({label, onClick}) => (
-          <MenuItem style={{fontSize: '1.5rem'}} key={label} onClick={() => {onClick(); handleClose()}}>
+          <MenuItem
+            style={{fontSize: '1.5rem'}}
+            key={label}
+            onClick={() => {
+              onClick()
+              handleClose()
+            }}
+          >
             {label}
           </MenuItem>
         ))}

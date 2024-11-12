@@ -2,9 +2,10 @@ import React from 'react'
 
 import {useDispatch} from 'react-redux'
 
+import styled from 'styled-components'
+
 import LinkedTeams from './linked_teams'
 import ActiveMeetings from './active_meetings'
-import styled from 'styled-components'
 
 const Panel = styled.div`
   display: flex;
@@ -41,8 +42,8 @@ const SidePanelRoot = () => {
         </div>
       </div>
       */}
-      <LinkedTeams />
-      <ActiveMeetings />
+      <LinkedTeams/>
+      <ActiveMeetings/>
     </Panel>
   )
 }

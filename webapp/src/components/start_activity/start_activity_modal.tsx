@@ -93,7 +93,15 @@ const StartActivityModal = () => {
       </Modal.Header>
       <Modal.Body>
         <div>
-          <p>To see the full details for any activity, visit <a href={`${config?.parabolURL}/activity-library/`} target='_blank'>{"Parabol's Activity Library"}</a></p>
+          <p>To see the full details for any activity, visit
+            <a
+              href={`${config?.parabolURL}/activity-library/`}
+              target='_blank'
+              rel='noreferrer'
+            >
+              {"Parabol's Activity Library"}
+            </a>
+          </p>
         </div>
         {isTeamsLoading && <LoadingSpinner text='Loading...'/>}
         {teamsError && <div className='error-text'>Loading teams failed, try refreshing the page</div>}

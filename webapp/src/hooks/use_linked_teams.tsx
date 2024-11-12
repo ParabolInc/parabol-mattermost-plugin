@@ -1,6 +1,7 @@
 import React, {useCallback, useEffect, useMemo} from 'react'
 import {useSelector} from 'react-redux'
 import {getCurrentChannelId} from 'mattermost-redux/selectors/entities/common'
+
 import {useLinkedTeamsQuery, useTeamsQuery} from '../api'
 
 export const useLinkedTeams = () => {
@@ -23,7 +24,7 @@ export const useLinkedTeams = () => {
     }
     return [
       teams.filter((team) => linkedTeamIds?.includes(team.id)),
-      teams.filter((team) => !linkedTeamIds?.includes(team.id))
+      teams.filter((team) => !linkedTeamIds?.includes(team.id)),
     ]
   }, [teams, linkedTeamIds])
 

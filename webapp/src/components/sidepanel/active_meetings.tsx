@@ -4,8 +4,10 @@ import {useDispatch} from 'react-redux'
 
 import {useActiveMeetingsQuery} from '../../api'
 import {openStartActivityModal} from '../../reducers'
-import MeetingRow from './meeting_row'
+
 import LoadingSpinner from '../loading_spinner'
+
+import MeetingRow from './meeting_row'
 
 const ActiveMeetings = () => {
   const {data: meetings, isLoading, error, refetch} = useActiveMeetingsQuery()
@@ -22,9 +24,12 @@ const ActiveMeetings = () => {
       <button onClick={handleStartActivity}>Start Activity</button>
       {isLoading && <LoadingSpinner text='Loading...'/>}
       {error && <div className='error-text'>Loading meetings failed, try refreshing the page</div>}
-      {meetings?.map((meeting) =>
-        <MeetingRow key={meeting.id} meeting={meeting} />
-      )}
+      {meetings?.map((meeting) => (
+        <MeetingRow
+          key={meeting.id}
+          meeting={meeting}
+        />
+      ))}
     </div>
   )
 }

@@ -1,8 +1,10 @@
 import React from 'react'
-import {getAssetsUrl} from '../../selectors'
+
 import {useSelector} from 'react-redux'
 import styled from 'styled-components'
 import {getCurrentChannel} from 'mattermost-redux/selectors/entities/channels'
+
+import {getAssetsUrl} from '../../selectors'
 import {useConfigQuery} from '../../api'
 
 const Panel = styled.div`
@@ -31,7 +33,10 @@ const PanelTitle = () => {
         height={24}
         src={`${assetsPath}/parabol.png`}
       />
-      <TitleLink href={config?.parabolURL} target='_blank'>Parabol{channelName && ` | ${channelName}`}</TitleLink>
+      <TitleLink
+        href={config?.parabolURL}
+        target='_blank'
+      >Parabol{channelName && ` | ${channelName}`}</TitleLink>
     </Panel>
   )
 }
