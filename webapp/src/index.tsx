@@ -12,9 +12,10 @@ import StartActivityModal from './components/start_activity'
 import LinkTeamModal from './components/link_team_modal'
 import rootReducer, {openPushPostAsReflection, openStartActivityModal} from './reducers'
 import {getAssetsUrl} from './selectors'
-import {api} from './api'
+//import {api} from './api'
 import SidePanelRoot from './components/sidepanel'
 import PushReflectionModal from './components/push_reflection/push_reflection_modal'
+import PanelTitle from './components/sidepanel/panel_title'
 
 const {id} = manifest
 
@@ -22,36 +23,26 @@ export default class Plugin {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars, @typescript-eslint/no-empty-function
   public async initialize(registry: PluginRegistry, store: Store<GlobalState, AnyAction>) {
     //slightly hacky, might not be necessary
-    store.dispatch = api.middleware(store as any)(store.dispatch)
+    //store.dispatch = api.middleware(store as any)(store.dispatch)
     setupListeners(store.dispatch)
     registry.registerReducer(rootReducer)
 
     // @see https://developers.mattermost.com/extend/plugins/webapp/reference/
     registry.registerRootComponent(StartActivityModal)
     registry.registerRootComponent(LinkTeamModal)
-    registry.registerWebSocketEventHandler(`custom_${manifest.id}_open_start_activity_modal`, (message) => {
+    registry.registerWebSocketEventHandler(`custom_${manifest.id}_open_start_activity_modal`, () => {
       store.dispatch(openStartActivityModal())
     })
     registry.registerRootComponent(PushReflectionModal)
 
     const {toggleRHSPlugin} = registry.registerRightHandSidebarComponent(
       SidePanelRoot,
-      <div>
-        <img
-          width={24}
-          height={24}
-          src={`${getAssetsUrl(store.getState())}/parabol.png`}
-        /> Parabol
-      </div>,
+      <PanelTitle />,
     )
     registry.registerChannelHeaderButtonAction(
       <img src={`${getAssetsUrl(store.getState())}/parabol.png`}/>,
-
-      // In the future we want to toggle the side panel
       () => store.dispatch(toggleRHSPlugin),
-
-      //() => store.dispatch(openStartActivityModal()),
-      'Start a Parabol Activity',
+      'Open Parabol Panel',
     )
 
     registry.registerPostDropdownMenuAction(

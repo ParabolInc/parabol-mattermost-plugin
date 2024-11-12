@@ -1,6 +1,6 @@
 import React from 'react'
 
-import {useGetMeetingSettingsQuery, useSetMeetingSettingsMutation, MeetingSettings as Settings} from '../../api'
+import {useMeetingSettingsQuery, useSetMeetingSettingsMutation, MeetingSettings as Settings} from '../../api'
 
 interface Props {
   teamId: string;
@@ -8,7 +8,7 @@ interface Props {
 }
 
 const MeetingSettings = ({teamId, meetingType}: Props) => {
-  const {data, isLoading, isError, refetch} = useGetMeetingSettingsQuery({teamId, meetingType})
+  const {data, isLoading, isError, refetch} = useMeetingSettingsQuery({teamId, meetingType})
   const [setMeetingSettings] = useSetMeetingSettingsMutation()
 
   const onChange = async (key: keyof Settings, value: boolean) => {

@@ -1,8 +1,8 @@
 import React, {useCallback, useMemo} from 'react'
 
-import {useStartCheckInMutation, useStartRetrospectiveMutation, useStartSprintPokerMutation, useStartTeamPromptMutation} from './api'
+import {useStartCheckInMutation, useStartRetrospectiveMutation, useStartSprintPokerMutation, useStartTeamPromptMutation} from '../api'
 
-export const useStartMeeting = () => {
+const useStartMeeting = () => {
   const [startRetrospective, retroStatus] = useStartRetrospectiveMutation()
   const [startCheckIn, checkinStatus] = useStartCheckInMutation()
   const [startSprintPoker, pokerStatus] = useStartSprintPokerMutation()
@@ -34,3 +34,5 @@ export const useStartMeeting = () => {
 
   return [startMeeting, {isLoading, isError, isSuccess}] as const
 }
+
+export default useStartMeeting

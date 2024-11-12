@@ -12,21 +12,24 @@ This plugin is still work in progress and not yet ready for production use.
 
 ## Development
 
-Start up a Mattermost development server
-```bash
-make start-server
-```
-go to http://localhost:8065 and do the initial setup. Create a [personal access token](https://docs.mattermost.com/developer/personal-access-tokens.html)
-and set the environment variable `MM_ADMIN_TOKEN` to the token value. Run 
-```
-export MM_ADMIN_TOKEN=<your personal access token>
-make watch
-```
-to start the plugin in development mode. This will watch for webapp changes and automatically rebuild the plugin.
-
-Configure the plugin in mattermost, go to System Console -> Plugins -> Parabol and enter
-- Parabol URL: http://host.docker.internal:3001
-- Parabol API Token: get this from MATTERMOST_SECRET environment of your Parabol instance
+- Create a `.env` file in the root of the project:
+  ```bash
+  cp .env.example .env
+  ```
+- Start up a Mattermost development server
+  ```bash
+  make start-server
+  ```
+  go to http://localhost:8065 and do the initial setup. Create a [personal access token](https://docs.mattermost.com/developer/personal-access-tokens.html)
+  and set the environment variable `MM_ADMIN_TOKEN` to the token value.
+- Run 
+  ```
+  make watch
+  ```
+  to start the plugin in development mode. This will watch for webapp changes and automatically rebuild the plugin.
+- Configure the plugin in mattermost, go to System Console -> Plugins -> Parabol and enter
+  - Parabol URL: http://host.docker.internal:3001
+  - Parabol API Token: get this from MATTERMOST_SECRET environment of your Parabol instance
 
 ### Releasing new versions
 

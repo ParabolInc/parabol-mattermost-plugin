@@ -2,8 +2,8 @@ import React, {useEffect, useMemo} from 'react'
 import {Modal} from 'react-bootstrap'
 import {useDispatch, useSelector} from 'react-redux'
 
-import {isError, useGetConfigQuery, useGetTemplatesQuery} from '../../api'
-import {useStartMeeting} from '../../hooks'
+import {isError, useConfigQuery, useTemplatesQuery, useTeamsQuery} from '../../api'
+import useStartMeeting from '../../hooks/use_start_meeting'
 import {closeStartActivityModal} from '../../reducers'
 import {getAssetsUrl, isStartActivityModalVisible} from '../../selectors'
 
@@ -14,16 +14,17 @@ import LoadingSpinner from '../loading_spinner'
 import MeetingSettings from './meeting_settings'
 
 const StartActivityModal = () => {
-  const {data, isLoading, refetch} = useGetTemplatesQuery()
-  const {data: config} = useGetConfigQuery()
+  const {data: availableTemplates, isLoading: isTemplatesLoading, refetch: refetchTemplates, error: templatesError} = useTemplatesQuery()
+  const {data: teams, isLoading: isTeamsLoading, refetch: refetchTeams, error: teamsError} = useTeamsQuery()
+  const {data: config} = useConfigQuery()
   const isVisible = useSelector(isStartActivityModalVisible)
   useEffect(() => {
     if (isVisible) {
-      refetch()
+      refetchTemplates()
+      refetchTeams()
     }
-  }, [isVisible, refetch])
+  }, [isVisible, refetchTemplates, refetchTeams])
 
-  const {availableTemplates, teams} = data ?? {}
   const [selectedTeam, setSelectedTeam] = React.useState<NonNullable<typeof teams>[number] | null>(null)
   const [selectedTemplate, setSelectedTemplate] = React.useState<NonNullable<typeof availableTemplates>[number] | null>(null)
 
@@ -87,17 +88,16 @@ const StartActivityModal = () => {
             height={36}
             src={`${assetsPath}/parabol.png`}
           />
-          {'Start a Parabol Activity'}
+          {' Start a Parabol Activity'}
         </Modal.Title>
       </Modal.Header>
       <Modal.Body>
         <div>
-          <p>To see the full details for any activity, visit <a href={`${config?.parabolURL}/activity-library/`}>{"Parabol's Activity Library"}</a></p>
+          <p>To see the full details for any activity, visit <a href={`${config?.parabolURL}/activity-library/`} target='_blank'>{"Parabol's Activity Library"}</a></p>
         </div>
-        {isLoading &&
-          <LoadingSpinner text='Loading...'/>
-        }
-        {data && (<>
+        {isTeamsLoading && <LoadingSpinner text='Loading...'/>}
+        {teamsError && <div className='error-text'>Loading teams failed, try refreshing the page</div>}
+        {teams &&
           <Select
             label='Choose Parabol Team'
             required={true}
@@ -105,6 +105,10 @@ const StartActivityModal = () => {
             value={selectedTeam}
             onChange={setSelectedTeam}
           />
+        }
+        {isTemplatesLoading && <LoadingSpinner text='Loading...'/> }
+        {templatesError && <div className='error-text'>Loading templates failed, try refreshing the page</div>}
+        {selectedTeam && availableTemplates && (<>
           <Select
             label='Choose Activity'
             required={true}
