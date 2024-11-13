@@ -36,7 +36,8 @@ const PushReflectionModal = () => {
       return null
     }
     const quotedMessage = post.message.split('\n').map((line) => `> ${line}`).join('\n')
-    return `${quotedMessage}\n\n[See comment in Mattermost](${postUrl})`
+    setComment(quotedMessage)
+    return `[See comment in Mattermost](${postUrl})`
   }, [post])
 
   const [createReflection] = useCreateReflectionMutation()
