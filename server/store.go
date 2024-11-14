@@ -17,6 +17,9 @@ func (p *Plugin) readArray(key string) ([]string, error) {
 	}
 
 	var arr []string
+	if len(raw) == 0 {
+		return arr, nil
+	}
 	err2 := json.Unmarshal(raw, &arr)
 	if err2 != nil {
 		return nil, err2
@@ -37,9 +40,8 @@ func (p *Plugin) addArrayValueWithRetries(key string, value string, retries int)
 		return err
 	}
 	var arr []string
-	_ = json.Unmarshal(oldValue, &arr)
-	if arr == nil {
-		arr = []string{}
+	if len(oldValue) > 0 {
+		_ = json.Unmarshal(oldValue, &arr)
 	}
 
 	arr = append(arr, value)
@@ -50,12 +52,12 @@ func (p *Plugin) addArrayValueWithRetries(key string, value string, retries int)
 		return err2
 	}
 
-	inserted, err := p.API.KVCompareAndSet(key, oldValue, newValue)
+	inserted, err3 := p.API.KVCompareAndSet(key, oldValue, newValue)
 	if inserted {
 		return nil
 	}
-	if err != nil {
-		return err
+	if err3 != nil {
+		return err3
 	}
 	return p.addArrayValueWithRetries(key, value, retries-1)
 }
@@ -73,6 +75,9 @@ func (p *Plugin) removeArrayValueWithRetries(key string, value string, retries i
 		return err
 	}
 	var arr []string
+	if len(oldValue) == 0 {
+		return nil
+	}
 	err2 := json.Unmarshal(oldValue, &arr)
 	if err2 != nil {
 		return err2
@@ -81,17 +86,17 @@ func (p *Plugin) removeArrayValueWithRetries(key string, value string, retries i
 	arr = slices.DeleteFunc(arr, func(s string) bool {
 		return s == value
 	})
-	newValue, err2 := json.Marshal(arr)
-	if err2 != nil {
+	newValue, err3 := json.Marshal(arr)
+	if err3 != nil {
 		return err2
 	}
 
-	inserted, err := p.API.KVCompareAndSet(key, oldValue, newValue)
+	inserted, err4 := p.API.KVCompareAndSet(key, oldValue, newValue)
 	if inserted {
 		return nil
 	}
-	if err != nil {
-		return err
+	if err4 != nil {
+		return err4
 	}
 	return p.removeArrayValueWithRetries(key, value, retries-1)
 }
