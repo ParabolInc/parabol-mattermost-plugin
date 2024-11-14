@@ -86,7 +86,9 @@ If we want to verify the path of the request, we need to add it back.
 https://github.com/mattermost/mattermost/blob/751d84bf13aa63f4706843318e45e8ca8401eba5/server/channels/app/plugin_requests.go#L226
 */
 func (p *Plugin) fixedPath(handler http.HandlerFunc) http.HandlerFunc {
-	pluginID := p.API.GetPluginID()
+	// We don't have 10.1 deployed yet
+	// pluginID := p.API.GetPluginID()
+	pluginID := "co.parabol.action"
 	path := "/plugins/" + pluginID
 	return func(w http.ResponseWriter, r *http.Request) {
 		r.URL.Path = path + r.URL.Path
