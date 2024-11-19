@@ -21,27 +21,6 @@ const SidePanelRoot = () => {
 
   return (
     <Panel>
-      {/*
-      <div className='form-group'>
-        <label
-          className='control-label'
-          htmlFor='team'
-        >Choose Parabol Team<span className='error-text'> *</span></label>
-        <div className='input-wrapper'>
-          <select
-            className='form-control'
-            id='team'
-            value={selectedTab}
-            onChange={(e) => setSelectedTab(e.target.value)}
-          >
-            <option
-              key='linked-teams'
-              value='linked-teams'
-            >Linked Parabol Teams</option>
-          </select>
-        </div>
-      </div>
-      */}
       <LinkedTeams/>
       <ActiveMeetings/>
     </Panel>
