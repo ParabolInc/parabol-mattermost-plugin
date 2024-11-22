@@ -266,6 +266,26 @@ func (p *Plugin) getConfig(c *Context, w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func (p *Plugin) components(w http.ResponseWriter, r *http.Request) {
+	file := r.PathValue("file")
+	config := p.getConfiguration()
+	url := config.ParabolURL + "/components/" + file
+	fmt.Print("GEORG components", url)
+
+	client := &http.Client{}
+	res, err := client.Get(url)
+	if err != nil {
+		http.Error(w, "Server Error", http.StatusInternalServerError)
+		msg := fmt.Sprintf(`{"error": "Request error", "originalError": "%v"}`, err)
+		_, _ = w.Write([]byte(msg))
+		return
+	}
+	defer res.Body.Close()
+
+	w.WriteHeader(res.StatusCode)
+	io.Copy(w, res.Body)
+}
+
 func (p *Plugin) ServeHTTP(c *plugin.Context, w http.ResponseWriter, r *http.Request) {
 	mux := http.NewServeMux()
 	mux.HandleFunc("POST /notify/{teamID}", p.fixedPath(p.notify))
@@ -274,5 +294,6 @@ func (p *Plugin) ServeHTTP(c *plugin.Context, w http.ResponseWriter, r *http.Req
 	mux.HandleFunc("POST /linkTeam/{channelID}/{teamID}", p.authenticated(p.linkTeam))
 	mux.HandleFunc("POST /unlinkTeam/{channelID}/{teamID}", p.authenticated(p.unlinkTeam))
 	mux.HandleFunc("GET /config", p.authenticated(p.getConfig))
+	mux.HandleFunc("GET /components/{file}", p.components)
 	mux.ServeHTTP(w, r)
 }
