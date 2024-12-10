@@ -14,17 +14,6 @@ export const getSiteURL = (state: GlobalState) => {
   return config?.SiteURL ?? ''
 }
 
-export const getCurrentTeamURL = (state: GlobalState) => {
-  const siteURL = getSiteURL(state)
-  const team = getCurrentTeam(state)
-  return `${siteURL}/${team?.name ?? ''}`
-}
-
-export const getPostURL = (state: GlobalState, postId: string) => {
-  const teamURL = getCurrentTeamURL(state)
-  return `${teamURL}/pl/${postId}`
-}
-
 export const getPluginRoot = (state: GlobalState) => {
   const config = getConfig(state)
   const siteURL = config?.SiteURL ?? ''
@@ -46,22 +35,8 @@ export const getPluginServerRoute = (state: GlobalState) => {
   return `${basePath}/plugins/${id}`
 }
 
-export const getParabolUrl = (state: GlobalState) => {
-  const siteURL = getPluginRoot(state)
-  return `${siteURL}/parabol`
-}
-
 export const getAssetsUrl = (state: GlobalState) => {
   const siteURL = getPluginRoot(state)
   return `${siteURL}/public`
 }
 
-export const getPluginState = (state: GlobalState) => ((state as any)[`plugins-${id}`] ?? {}) as PluginState
-
-export const isStartActivityModalVisible = (state: GlobalState) => getPluginState(state).isStartActivityModalVisible
-
-export const isLinkTeamModalVisible = (state: GlobalState) => getPluginState(state).isLinkTeamModalVisible
-
-export const pushPostAsReflection = (state: GlobalState) => getPluginState(state).pushPostAsReflection
-
-//export const get
