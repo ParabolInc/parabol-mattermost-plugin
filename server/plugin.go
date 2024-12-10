@@ -134,9 +134,7 @@ func (p *Plugin) notify(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (p *Plugin) query(c *Context, w http.ResponseWriter, r *http.Request) {
-	queryRequest := r.PathValue("query")
-
+func (p *Plugin) login(c *Context, w http.ResponseWriter, r *http.Request) {
 	var variables json.RawMessage
 	err := getJSON(r.Body, &variables)
 	if err != nil && err != io.EOF {
@@ -146,7 +144,6 @@ func (p *Plugin) query(c *Context, w http.ResponseWriter, r *http.Request) {
 
 	config := p.getConfiguration()
 	url := config.ParabolURL + "/mattermost"
-	fmt.Print("query", queryRequest, variables, url)
 	privKey := []byte(config.ParabolToken)
 	client, err := NewSigningClient(privKey)
 	if err != nil {
@@ -156,12 +153,8 @@ func (p *Plugin) query(c *Context, w http.ResponseWriter, r *http.Request) {
 	}
 
 	query := struct {
-		Query     string          `json:"query"`
-		Variables json.RawMessage `json:"variables"`
 		Email     string          `json:"email"`
 	}{
-		Query:     queryRequest,
-		Variables: variables,
 		Email:     c.User.Email,
 	}
 	requestBody, err := json.Marshal(query)
@@ -193,6 +186,42 @@ func (p *Plugin) query(c *Context, w http.ResponseWriter, r *http.Request) {
 		_, _ = w.Write([]byte(`{"error": "Response error"}`))
 		return
 	}
+}
+
+func (p *Plugin) graphql(c *Context, w http.ResponseWriter, r *http.Request) {
+	config := p.getConfiguration()
+	url := config.ParabolURL + "/graphql"
+	privKey := []byte(config.ParabolToken)
+
+	client, err := NewSigningClient(privKey)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		_, _ = w.Write([]byte(`{"error": "Signing error"}`))
+		return
+	}
+	defer r.Body.Close()
+	req, err1 := http.NewRequest("POST", url, r.Body)
+	if err1 != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		msg := fmt.Sprintf(`{"error": "Request error", "originalError": "%v"}`, err1)
+		_, _ = w.Write([]byte(msg))
+		return
+	}
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Accept", "application/json")
+	req.Header.Set("x-application-authorization", r.Header.Get("x-application-authorization"))
+
+	res, err2 := client.Do(req)
+	if err2 != nil {
+		http.Error(w, "Server Error", http.StatusInternalServerError)
+		msg := fmt.Sprintf(`{"error": "Request error", "originalError": "%v"}`, err2)
+		_, _ = w.Write([]byte(msg))
+		return
+	}
+	defer res.Body.Close()
+
+	w.WriteHeader(res.StatusCode)
+	io.Copy(w, res.Body)
 }
 
 func (p *Plugin) linkedTeams(c *Context, w http.ResponseWriter, r *http.Request) {
@@ -248,7 +277,7 @@ func (p *Plugin) unlinkTeam(c *Context, w http.ResponseWriter, r *http.Request) 
 func (p *Plugin) getConfig(c *Context, w http.ResponseWriter, r *http.Request) {
 	config := p.getConfiguration()
 	body, err := json.Marshal(struct {
-		ParabolURL string `json:"parabolURL"`
+		ParabolURL string `json:"parabolUrl"`
 	}{
 		ParabolURL: config.ParabolURL,
 	})
@@ -266,11 +295,14 @@ func (p *Plugin) getConfig(c *Context, w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+/*
+Endpoint for module federation, serves components from parabol.
+We cannot contact the Parabol instance directly from the webapp because of security settings on it.
+*/
 func (p *Plugin) components(w http.ResponseWriter, r *http.Request) {
 	file := r.PathValue("file")
 	config := p.getConfiguration()
 	url := config.ParabolURL + "/components/" + file
-	fmt.Print("GEORG components", url)
 
 	client := &http.Client{}
 	res, err := client.Get(url)
@@ -286,14 +318,23 @@ func (p *Plugin) components(w http.ResponseWriter, r *http.Request) {
 	io.Copy(w, res.Body)
 }
 
+func (p *Plugin) parabolRedirect(w http.ResponseWriter, r *http.Request) {
+	path := r.PathValue("path")
+	config := p.getConfiguration()
+	url := config.ParabolURL + "/" + path
+	http.Redirect(w, r, url, http.StatusSeeOther)
+}
+
 func (p *Plugin) ServeHTTP(c *plugin.Context, w http.ResponseWriter, r *http.Request) {
 	mux := http.NewServeMux()
 	mux.HandleFunc("POST /notify/{teamID}", p.fixedPath(p.notify))
-	mux.HandleFunc("POST /query/{query}", p.authenticated(p.query))
+	mux.HandleFunc("POST /login", p.authenticated(p.login))
+	mux.HandleFunc("POST /graphql", p.authenticated(p.graphql))
 	mux.HandleFunc("GET /linkedTeams/{channelID}", p.authenticated(p.linkedTeams))
 	mux.HandleFunc("POST /linkTeam/{channelID}/{teamID}", p.authenticated(p.linkTeam))
 	mux.HandleFunc("POST /unlinkTeam/{channelID}/{teamID}", p.authenticated(p.unlinkTeam))
 	mux.HandleFunc("GET /config", p.authenticated(p.getConfig))
 	mux.HandleFunc("GET /components/{file}", p.components)
+	mux.HandleFunc("/parabol/{path...}", p.parabolRedirect)
 	mux.ServeHTTP(w, r)
 }
