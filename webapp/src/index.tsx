@@ -24,7 +24,7 @@ export default class Plugin {
         name: 'parabol-main',
         remotes: [{
           name: 'parabol',
-          entry: `${pluginServerRoute}/components/remoteEntry.js`,
+          entry: `${pluginServerRoute}/components/mattermost-plugin-entry.js`,
         }]
       })
 
