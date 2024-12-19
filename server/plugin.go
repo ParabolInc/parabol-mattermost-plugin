@@ -24,7 +24,7 @@ const (
 )
 
 type SlashCommand struct {
-	Trigger string `json:"trigger"`
+	Trigger     string `json:"trigger"`
 	Description string `json:"description"`
 }
 
@@ -40,7 +40,6 @@ type Plugin struct {
 	configuration *configuration
 
 	commands []SlashCommand
-
 }
 
 type Context struct {
@@ -339,7 +338,6 @@ func (p *Plugin) connect(w http.ResponseWriter, r *http.Request) {
 	}
 	w.WriteHeader(http.StatusOK)
 }
-
 
 func (p *Plugin) ServeHTTP(c *plugin.Context, w http.ResponseWriter, r *http.Request) {
 	mux := http.NewServeMux()

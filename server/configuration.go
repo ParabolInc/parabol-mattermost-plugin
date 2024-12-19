@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"net/http"
 
 	"github.com/pkg/errors"
@@ -88,12 +87,11 @@ func (p *Plugin) loadCommands() error {
 		return errors.Wrap(err, "failed to connect to Parabol")
 	}
 
+	defer res.Body.Close()
 	var commands []SlashCommand
 	if err := getJSON(res.Body, &commands); err != nil {
 		return errors.Wrap(err, "failed to parse Parabol response")
 	}
 	p.commands = commands
-	p.registerCommands()
-
-	return nil
+	return p.registerCommands()
 }
