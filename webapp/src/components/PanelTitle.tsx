@@ -37,8 +37,7 @@ const PanelTitle = ({iconUrl}: Props) => {
         const data = await response.json()
         setParabolURL(data.parabolURL)
       } catch (error) {
-        console.log('GEORG failed to fetch config', error)
-        //
+        console.log('Failed to fetch config', error)
       }
     }
     fetchConfig()

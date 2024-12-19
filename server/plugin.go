@@ -229,7 +229,6 @@ func (p *Plugin) linkedTeams(c *Context, w http.ResponseWriter, r *http.Request)
 	teams, err := p.getTeams(channelID)
 
 	if err != nil {
-		fmt.Print("GEORG linkedTeams", err)
 		w.WriteHeader(http.StatusInternalServerError)
 		_, _ = w.Write([]byte(`{"error": "Could not read linked teams"}`))
 		return

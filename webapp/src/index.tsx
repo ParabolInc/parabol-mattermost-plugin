@@ -3,16 +3,16 @@ import {Store, AnyAction} from 'redux'
 
 import {GlobalState} from 'mattermost-redux/types/store'
 
+import {init, loadRemote} from '@module-federation/enhanced/runtime'
+
 import manifest from '@/manifest'
 import {PluginRegistry} from '@/types/mattermost-webapp'
 
-import {getAssetsUrl, getPluginServerRoute} from './selectors'
-
 import ErrorPanel from './components/ErrorPanel'
 import PanelTitle from './components/PanelTitle'
+import {getAssetsUrl, getPluginServerRoute} from './selectors'
 
 const {id} = manifest
-import {init, loadRemote} from '@module-federation/enhanced/runtime'
 
 export default class Plugin {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars, @typescript-eslint/no-empty-function
@@ -25,20 +25,18 @@ export default class Plugin {
         remotes: [{
           name: 'parabol',
           entry: `${pluginServerRoute}/components/mattermost-plugin-entry.js`,
-        }]
+        }],
       })
 
       const plugin = await loadRemote<any>('parabol/plugin')
-      console.log('GEORG loaded initPlugin', plugin)
       plugin?.init(registry, store)
       console.log(`Initialized plugin ${id}`)
     } catch (e) {
       const iconUrl = `${getAssetsUrl(store.getState())}/parabol.png`
-      console.log('GEORG iconUrl', iconUrl)
 
       const {toggleRHSPlugin} = registry.registerRightHandSidebarComponent(
         ErrorPanel,
-        <PanelTitle iconUrl={iconUrl} />,
+        <PanelTitle iconUrl={iconUrl}/>,
       )
 
       registry.registerChannelHeaderButtonAction(
