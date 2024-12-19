@@ -23,6 +23,11 @@ const (
 	requestTimeout = 30 * time.Second
 )
 
+type SlashCommand struct {
+	Trigger string `json:"trigger"`
+	Description string `json:"description"`
+}
+
 // Plugin implements the interface expected by the Mattermost server to communicate between the server and plugin processes.
 type Plugin struct {
 	plugin.MattermostPlugin
@@ -33,6 +38,9 @@ type Plugin struct {
 	// configuration is the active plugin configuration. Consult getConfiguration and
 	// setConfiguration for usage.
 	configuration *configuration
+
+	commands []SlashCommand
+
 }
 
 type Context struct {
@@ -105,8 +113,7 @@ func (p *Plugin) notify(w http.ResponseWriter, r *http.Request) {
 		_, _ = w.Write([]byte(`{"error": "Verify config error"}`))
 		return
 	}
-	err = httpsign.VerifyRequest("parabol", *verifier, r)
-	if err != nil {
+	if err = httpsign.VerifyRequest("parabol", *verifier, r); err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		_, _ = w.Write([]byte(`{"error": "Verification error"}`))
 		return
@@ -136,8 +143,7 @@ func (p *Plugin) notify(w http.ResponseWriter, r *http.Request) {
 
 func (p *Plugin) login(c *Context, w http.ResponseWriter, r *http.Request) {
 	var variables json.RawMessage
-	err := getJSON(r.Body, &variables)
-	if err != nil && err != io.EOF {
+	if err := getJSON(r.Body, &variables); err != nil && err != io.EOF {
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
@@ -180,12 +186,12 @@ func (p *Plugin) login(c *Context, w http.ResponseWriter, r *http.Request) {
 		_, _ = w.Write([]byte(`{"error": "Serialization error"}`))
 		return
 	}
-	_, err = w.Write(responseBody)
-	if err != nil {
+	if _, err = w.Write(responseBody); err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		_, _ = w.Write([]byte(`{"error": "Response error"}`))
 		return
 	}
+	w.WriteHeader(http.StatusOK)
 }
 
 func (p *Plugin) graphql(c *Context, w http.ResponseWriter, r *http.Request) {
@@ -221,10 +227,7 @@ func (p *Plugin) graphql(c *Context, w http.ResponseWriter, r *http.Request) {
 	defer res.Body.Close()
 
 	w.WriteHeader(res.StatusCode)
-	if _, err := io.Copy(w, res.Body); err != nil {
-		// we already sent the response header, so just log here
-		fmt.Println("Error copying response body", err)
-	}
+	_, _ = io.Copy(w, res.Body)
 }
 
 func (p *Plugin) linkedTeams(c *Context, w http.ResponseWriter, r *http.Request) {
@@ -317,10 +320,7 @@ func (p *Plugin) components(w http.ResponseWriter, r *http.Request) {
 	defer res.Body.Close()
 
 	w.WriteHeader(res.StatusCode)
-	if _, err := io.Copy(w, res.Body); err != nil {
-		// we already sent the response header, so just log here
-		fmt.Println("Error copying response body", err)
-	}
+	_, _ = io.Copy(w, res.Body)
 }
 
 func (p *Plugin) parabolRedirect(w http.ResponseWriter, r *http.Request) {
@@ -329,6 +329,17 @@ func (p *Plugin) parabolRedirect(w http.ResponseWriter, r *http.Request) {
 	url := config.ParabolURL + "/" + path
 	http.Redirect(w, r, url, http.StatusSeeOther)
 }
+
+func (p *Plugin) connect(w http.ResponseWriter, r *http.Request) {
+	err := p.loadCommands()
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		msg := fmt.Sprintf(`{"error": "Error loading commands", "originalError": "%v"}`, err)
+		_, _ = w.Write([]byte(msg))
+	}
+	w.WriteHeader(http.StatusOK)
+}
+
 
 func (p *Plugin) ServeHTTP(c *plugin.Context, w http.ResponseWriter, r *http.Request) {
 	mux := http.NewServeMux()
@@ -341,5 +352,6 @@ func (p *Plugin) ServeHTTP(c *plugin.Context, w http.ResponseWriter, r *http.Req
 	mux.HandleFunc("GET /config", p.authenticated(p.getConfig))
 	mux.HandleFunc("GET /components/{file}", p.components)
 	mux.HandleFunc("/parabol/{path...}", p.parabolRedirect)
+	mux.HandleFunc("/connect", p.connect)
 	mux.ServeHTTP(w, r)
 }

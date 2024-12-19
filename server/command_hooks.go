@@ -11,32 +11,35 @@ import (
 )
 
 const (
-	commandTriggerDialog = "parabol"
-	commandDialogHelp    = "###### Interactive Parabol Slash Command Help\n" +
-		"- `/parabol start` - Start a Parabol Activity.\n" +
-		"- `/parabol help` - Show this help text"
+	commandTrigger = "parabol"
+	commandDescription = "Start a Parabol Activity."
+	commandHelpTitle    = "###### Parabol Slash Command Help"
 )
 
 func (p *Plugin) registerCommands() error {
 	if err := p.API.RegisterCommand(&model.Command{
-		Trigger:          commandTriggerDialog,
+		Trigger:          commandTrigger,
 		AutoComplete:     true,
-		AutoCompleteDesc: "Start a Parabol Activity.",
+		AutoCompleteDesc: commandDescription,
 		DisplayName:      "Parabol",
-		AutocompleteData: getCommandDialogAutocompleteData(),
+		AutocompleteData: p.getCommandDialogAutocompleteData(),
 	}); err != nil {
-		return errors.Wrapf(err, "failed to register %s command", commandTriggerDialog)
+		return errors.Wrapf(err, "failed to register %s command", commandTrigger)
 	}
 
 	return nil
 }
 
-func getCommandDialogAutocompleteData() *model.AutocompleteData {
-	command := model.NewAutocompleteData(commandTriggerDialog, "", "Start a Parabol Activity")
+func (p *Plugin) getCommandDialogAutocompleteData() *model.AutocompleteData {
+	command := model.NewAutocompleteData(commandTrigger, "", commandDescription)
 
-	command.AddCommand(model.NewAutocompleteData("start", "", "Start a Parabol Activity"))
+	for _, commandDef := range p.commands {
+		if commandDef.Trigger != "" {
+			command.AddCommand(model.NewAutocompleteData(commandDef.Trigger, "", commandDef.Description))
+		}
+	}
 
-	command.AddCommand(model.NewAutocompleteData("help", "", ""))
+	command.AddCommand(model.NewAutocompleteData("help", "", "Show help message"))
 
 	return command
 }
@@ -44,8 +47,8 @@ func getCommandDialogAutocompleteData() *model.AutocompleteData {
 func (p *Plugin) ExecuteCommand(c *plugin.Context, args *model.CommandArgs) (*model.CommandResponse, *model.AppError) {
 	trigger := strings.TrimPrefix(strings.Fields(args.Command)[0], "/")
 	switch trigger {
-	case commandTriggerDialog:
-		return p.executeCommandDialog(args), nil
+	case commandTrigger:
+		return p.executeCommand(args), nil
 
 	default:
 		return &model.CommandResponse{
@@ -55,50 +58,62 @@ func (p *Plugin) ExecuteCommand(c *plugin.Context, args *model.CommandArgs) (*mo
 	}
 }
 
-func (p *Plugin) executeCommandDialog(args *model.CommandArgs) *model.CommandResponse {
-	var dialogRequest model.OpenDialogRequest
+func (p *Plugin) executeCommand(args *model.CommandArgs) *model.CommandResponse {
 	fields := strings.Fields(args.Command)
 	command := ""
-	if len(fields) == 2 {
+	if len(fields) >= 2 {
 		command = fields[1]
 	}
 
 	switch command {
 	case "help":
+		helpText := commandHelpTitle
+		if len(p.commands) == 0 {
+			helpText += "\n\nFailed to conect to Parabol, check the configuration."
+		} else {
+			for _, commandDef := range p.commands {
+				helpText += fmt.Sprintf("\n- `/%s %s` - %s", commandTrigger, commandDef.Trigger, commandDef.Description)
+			}
+		}
+
 		return &model.CommandResponse{
 			ResponseType: model.CommandResponseTypeEphemeral,
-			Text:         commandDialogHelp,
+			Text:         helpText,
 		}
-	case "start":
-		data := map[string]interface{}{"foo": "bar"}
-		p.API.PublishWebSocketEvent("open_start_activity_modal", data, &model.WebsocketBroadcast{UserId: args.UserId})
 	// this case is left here for development, so it's easy to copy the styles
 	case "dialog":
-		dialogRequest = model.OpenDialogRequest{
+		dialogRequest := model.OpenDialogRequest{
 			TriggerId: args.TriggerId,
 			URL:       fmt.Sprintf("/plugins/%s/dialog/1", manifest.Id),
-			Dialog:    getDialogWithIntroductionText("**Some** _introductory_ paragraph in Markdown formatted text with [link](https://mattermost.com)"),
+			Dialog:    getDialogWithSampleElements(),
 		}
+		if err := p.API.OpenInteractiveDialog(dialogRequest); err != nil {
+			errorMessage := "Failed to open Interactive Dialog"
+			p.API.LogError(errorMessage, "err", err.Error())
+			return &model.CommandResponse{
+				ResponseType: model.CommandResponseTypeEphemeral,
+				Text:         errorMessage,
+			}
+		}
+		return &model.CommandResponse{}
 	default:
+		for _, commandDef := range p.commands {
+			data := map[string]interface{}{"fields": fields}
+			if commandDef.Trigger == command {
+				p.API.PublishWebSocketEvent(commandDef.Trigger, data, &model.WebsocketBroadcast{UserId: args.UserId})
+				return &model.CommandResponse{}
+			}
+		}
+
 		return &model.CommandResponse{
 			ResponseType: model.CommandResponseTypeEphemeral,
 			Text:         fmt.Sprintf("Unknown command: %s", command),
 		}
 	}
-
-	if err := p.API.OpenInteractiveDialog(dialogRequest); err != nil {
-		errorMessage := "Failed to open Interactive Dialog"
-		p.API.LogError(errorMessage, "err", err.Error())
-		return &model.CommandResponse{
-			ResponseType: model.CommandResponseTypeEphemeral,
-			Text:         errorMessage,
-		}
-	}
-	return &model.CommandResponse{}
 }
 
 func getDialogWithSampleElements() model.Dialog {
-	return model.Dialog{
+	dialog := model.Dialog{
 		CallbackId: "somecallbackid",
 		Title:      "Test Title",
 		IconURL:    "http://www.mattermost.org/wp-content/uploads/2016/04/icon.png",
@@ -252,10 +267,7 @@ func getDialogWithSampleElements() model.Dialog {
 		NotifyOnCancel: true,
 		State:          "somestate",
 	}
-}
-
-func getDialogWithIntroductionText(introductionText string) model.Dialog {
-	dialog := getDialogWithSampleElements()
-	dialog.IntroductionText = introductionText
+	dialog.IntroductionText = "**Some** _introductory_ paragraph in Markdown formatted text with [link](https://mattermost.com)"
 	return dialog
 }
+
