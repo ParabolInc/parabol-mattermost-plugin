@@ -1,6 +1,8 @@
 package main
 
 import (
+	"net/http"
+
 	"github.com/pkg/errors"
 )
 
@@ -73,8 +75,23 @@ func (p *Plugin) OnConfigurationChange() error {
 	if err := p.API.LoadPluginConfiguration(configuration); err != nil {
 		return errors.Wrap(err, "failed to load plugin configuration")
 	}
-
 	p.setConfiguration(configuration)
+	return p.loadCommands()
+}
 
-	return nil
+func (p *Plugin) loadCommands() error {
+	url := p.configuration.ParabolURL + "/components/mattermost-plugin-commands.json"
+	client := &http.Client{}
+	res, err := client.Get(url)
+	if err != nil {
+		return errors.Wrap(err, "failed to connect to Parabol")
+	}
+
+	defer res.Body.Close()
+	var commands []SlashCommand
+	if err := getJSON(res.Body, &commands); err != nil {
+		return errors.Wrap(err, "failed to parse Parabol response")
+	}
+	p.commands = commands
+	return p.registerCommands()
 }
