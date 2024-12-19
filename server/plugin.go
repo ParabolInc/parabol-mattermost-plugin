@@ -153,9 +153,9 @@ func (p *Plugin) login(c *Context, w http.ResponseWriter, r *http.Request) {
 	}
 
 	query := struct {
-		Email     string          `json:"email"`
+		Email string `json:"email"`
 	}{
-		Email:     c.User.Email,
+		Email: c.User.Email,
 	}
 	requestBody, err := json.Marshal(query)
 
@@ -221,7 +221,10 @@ func (p *Plugin) graphql(c *Context, w http.ResponseWriter, r *http.Request) {
 	defer res.Body.Close()
 
 	w.WriteHeader(res.StatusCode)
-	io.Copy(w, res.Body)
+	if _, err := io.Copy(w, res.Body); err != nil {
+		// we already sent the response header, so just log here
+		fmt.Println("Error copying response body", err)
+	}
 }
 
 func (p *Plugin) linkedTeams(c *Context, w http.ResponseWriter, r *http.Request) {
@@ -314,7 +317,10 @@ func (p *Plugin) components(w http.ResponseWriter, r *http.Request) {
 	defer res.Body.Close()
 
 	w.WriteHeader(res.StatusCode)
-	io.Copy(w, res.Body)
+	if _, err := io.Copy(w, res.Body); err != nil {
+		// we already sent the response header, so just log here
+		fmt.Println("Error copying response body", err)
+	}
 }
 
 func (p *Plugin) parabolRedirect(w http.ResponseWriter, r *http.Request) {
