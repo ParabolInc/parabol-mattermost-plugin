@@ -1,7 +1,8 @@
 const exec = require('child_process').exec
-const ModuleFederationPlugin = require('webpack').container.ModuleFederationPlugin
 
 const path = require('path')
+
+const ModuleFederationPlugin = require('webpack').container.ModuleFederationPlugin
 
 const PLUGIN_ID = require('../plugin.json').id
 
@@ -12,17 +13,17 @@ const plugins = [
   new ModuleFederationPlugin({
     name: 'parabol',
     shared: {
-        react: {
-            import: 'react', // the "react" package will be used a provided and fallback module
-            shareKey: 'react', // under this name the shared module will be placed in the share scope
-            shareScope: 'default', // share scope with this name will be used
-            singleton: true, // only a single version of the shared module is allowed
-        },
-        'react-dom': {
-            singleton: true, // only a single version of the shared module is allowed
-        },
+      react: {
+        import: 'react', // the "react" package will be used a provided and fallback module
+        shareKey: 'react', // under this name the shared module will be placed in the share scope
+        shareScope: 'default', // share scope with this name will be used
+        singleton: true, // only a single version of the shared module is allowed
+      },
+      'react-dom': {
+        singleton: true, // only a single version of the shared module is allowed
+      },
     },
-  })
+  }),
 ]
 if (NPM_TARGET === 'build:watch' || NPM_TARGET === 'debug:watch') {
   plugins.push({
