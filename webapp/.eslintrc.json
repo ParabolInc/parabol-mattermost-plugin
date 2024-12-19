@@ -136,7 +136,7 @@
       "global-require": 2,
       "guard-for-in": 2,
       "id-blacklist": 0,
-      "import/no-unresolved": 2,
+      "import/no-unresolved": 1,
       "import/order": [
          "error",
          {
