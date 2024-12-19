@@ -11,9 +11,9 @@ import (
 )
 
 const (
-	commandTrigger = "parabol"
+	commandTrigger     = "parabol"
 	commandDescription = "Start a Parabol Activity."
-	commandHelpTitle    = "###### Parabol Slash Command Help"
+	commandHelpTitle   = "###### Parabol Slash Command Help"
 )
 
 func (p *Plugin) registerCommands() error {
@@ -270,4 +270,3 @@ func getDialogWithSampleElements() model.Dialog {
 	dialog.IntroductionText = "**Some** _introductory_ paragraph in Markdown formatted text with [link](https://mattermost.com)"
 	return dialog
 }
-
