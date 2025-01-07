@@ -69,7 +69,7 @@ func (p *Plugin) executeCommand(args *model.CommandArgs) *model.CommandResponse 
 	case "help":
 		helpText := commandHelpTitle
 		if len(p.commands) == 0 {
-			helpText += "\n\nFailed to conect to Parabol, check the configuration."
+			helpText += "\n\nFailed to connect to Parabol, check the configuration."
 		} else {
 			for _, commandDef := range p.commands {
 				helpText += fmt.Sprintf("\n- `/%s %s` - %s", commandTrigger, commandDef.Trigger, commandDef.Description)
@@ -80,6 +80,14 @@ func (p *Plugin) executeCommand(args *model.CommandArgs) *model.CommandResponse 
 			ResponseType: model.CommandResponseTypeEphemeral,
 			Text:         helpText,
 		}
+        case "connect":
+		if err := p.loadCommands(); err != nil {
+			return &model.CommandResponse{
+				ResponseType: model.CommandResponseTypeEphemeral,
+				Text:         fmt.Sprintf("Failed to connect to Parabol, check the configuration (%s)", err),
+			}
+		}
+		return &model.CommandResponse{}
 	// this case is left here for development, so it's easy to copy the styles
 	case "dialog":
 		dialogRequest := model.OpenDialogRequest{

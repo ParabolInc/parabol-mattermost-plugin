@@ -18,7 +18,7 @@ func (p *Plugin) OnActivate() error {
 	}
 
 	botID, err := p.API.EnsureBotUser(&model.Bot{
-		Username:    "parabol-bot",
+		Username:    "parabol",
 		DisplayName: "Parabol",
 		Description: "Created by the Parabol plugin.",
 	})
