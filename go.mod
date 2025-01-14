@@ -1,6 +1,6 @@
 module github.com/ParabolInc/parabol-mattermost-plugin
 
-go 1.22.5
+go 1.22.6
 
 toolchain go1.23.0
 
