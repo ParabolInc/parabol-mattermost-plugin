@@ -80,7 +80,7 @@ func (p *Plugin) executeCommand(args *model.CommandArgs) *model.CommandResponse 
 			ResponseType: model.CommandResponseTypeEphemeral,
 			Text:         helpText,
 		}
-        case "connect":
+	case "connect":
 		if err := p.loadCommands(); err != nil {
 			return &model.CommandResponse{
 				ResponseType: model.CommandResponseTypeEphemeral,
