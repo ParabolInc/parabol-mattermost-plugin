@@ -89,7 +89,7 @@ func (p *Plugin) executeCommand(args *model.CommandArgs) *model.CommandResponse 
 		}
 		return &model.CommandResponse{
 			ResponseType: model.CommandResponseTypeEphemeral,
-			Text:         fmt.Sprintf("Successfully connected to Parabol"),
+			Text:         "Successfully connected to Parabol",
 		}
 	// this case is left here for development, so it's easy to copy the styles
 	case "dialog":
