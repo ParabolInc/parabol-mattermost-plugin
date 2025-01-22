@@ -2,6 +2,7 @@ package main
 
 import (
 	"net/http"
+	"strings"
 
 	"github.com/pkg/errors"
 )
@@ -75,6 +76,7 @@ func (p *Plugin) OnConfigurationChange() error {
 	if err := p.API.LoadPluginConfiguration(configuration); err != nil {
 		return errors.Wrap(err, "failed to load plugin configuration")
 	}
+	configuration.ParabolURL = strings.TrimSuffix(configuration.ParabolURL, "/")
 	p.setConfiguration(configuration)
 	return p.loadCommands()
 }

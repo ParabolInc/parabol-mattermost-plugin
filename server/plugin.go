@@ -318,6 +318,12 @@ func (p *Plugin) components(w http.ResponseWriter, r *http.Request) {
 	}
 	defer res.Body.Close()
 
+	for header, values := range res.Header {
+		for _, value := range values {
+			w.Header().Add(header, value)
+		}
+	}
+
 	w.WriteHeader(res.StatusCode)
 	_, _ = io.Copy(w, res.Body)
 }
