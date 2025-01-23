@@ -101,7 +101,7 @@ func (p *Plugin) loadCommands() error {
 			Description: "Shares a Parabol activity so channel members can join",
 		},
 	}
-	p.registerCommands()
+	_ = p.registerCommands()
 
 	url := p.configuration.ParabolURL + "/components/mattermost-plugin-commands.json"
 	client := &http.Client{}
