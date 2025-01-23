@@ -82,6 +82,27 @@ func (p *Plugin) OnConfigurationChange() error {
 }
 
 func (p *Plugin) loadCommands() error {
+	// start with a fallback
+	p.commands = []SlashCommand{
+		{
+			Trigger:     "start",
+			Description: "Start a Parabol Activity",
+		},
+		{
+			Trigger:     "task",
+			Description: "Adds a task in Parabol",
+		},
+		{
+			Trigger:     "invite",
+			Description: "Shares an invite to a Parabol team in the current channel",
+		},
+		{
+			Trigger:     "share",
+			Description: "Shares a Parabol activity so channel members can join",
+		},
+	}
+	p.registerCommands()
+
 	url := p.configuration.ParabolURL + "/components/mattermost-plugin-commands.json"
 	client := &http.Client{}
 	res, err := client.Get(url)
