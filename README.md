@@ -29,7 +29,7 @@ This plugin is still work in progress and not yet ready for production use.
   ```
   to start the plugin in development mode. This will watch for webapp changes and automatically rebuild the plugin.
 - Configure the plugin in mattermost, go to System Console -> Plugins -> Parabol and enter
-  - Parabol URL: http://host.docker.internal:3001
+  - Parabol URL: http://host.docker.internal:3000
   - Parabol API Token: get this from MATTERMOST_SECRET environment of your Parabol instance
 
 ### Releasing new versions
