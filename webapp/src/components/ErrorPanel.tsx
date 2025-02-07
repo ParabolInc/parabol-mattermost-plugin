@@ -1,19 +1,25 @@
 import React from 'react'
 
-import {useDispatch, useSelector} from 'react-redux'
-
 import styled from 'styled-components'
 
 const Panel = styled.div`
   display: flex;
   flex-direction: column;
-  align-items: stretch;
-  padding: 16px 8px;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
 `
 
 const SidePanel = () => (
   <Panel>
-    <div>Failed to connect to Parabol</div>
+    <div>Failed to connect to Parabol.</div>
+    <br/>
+    <a
+      href='#'
+      onClick={() => window.location.reload()}
+    >
+      Reload page?
+    </a>
   </Panel>
 )
 

@@ -30,7 +30,7 @@ export default class Plugin {
 
       const plugin = await loadRemote<any>('parabol/plugin')
       plugin?.init(registry, store)
-      console.log(`Initialized plugin ${id}`)
+      console.log(`Loaded plugin components ${id}`)
     } catch (e) {
       const iconUrl = `${getAssetsUrl(store.getState())}/parabol.png`
 
@@ -44,7 +44,7 @@ export default class Plugin {
         () => store.dispatch(toggleRHSPlugin),
         'Open Parabol Panel',
       )
-      console.error(`Failed to load content from Parabol to initialize plugin ${id}`, e)
+      console.error(`Failed to load components from Parabol to initialize plugin ${id}`, e)
     }
   }
 }
