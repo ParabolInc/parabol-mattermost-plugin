@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strings"
 	"sync"
 	"time"
 
@@ -26,6 +27,10 @@ const (
 type SlashCommand struct {
 	Trigger     string `json:"trigger"`
 	Description string `json:"description"`
+}
+
+type ClientConfig struct {
+	Commands []SlashCommand `json:"commands"`
 }
 
 // Plugin implements the interface expected by the Mattermost server to communicate between the server and plugin processes.
@@ -50,6 +55,24 @@ type Context struct {
 }
 
 type HTTPHandlerFuncWithContext func(c *Context, w http.ResponseWriter, r *http.Request)
+
+func copyRequestHeaders(from *http.Request, to *http.Request) {
+	for header, values := range from.Header {
+		for _, value := range values {
+			to.Header.Add(header, value)
+		}
+	}
+	to.Header.Set("X-Forwarded-For", from.RemoteAddr)
+}
+func forwardResponse(from *http.Response, to http.ResponseWriter) {
+	for header, values := range from.Header {
+		for _, value := range values {
+			to.Header().Add(header, value)
+		}
+	}
+	to.WriteHeader(from.StatusCode)
+	_, _ = io.Copy(to, from.Body)
+}
 
 func (p *Plugin) createContext(userID string) (*Context, context.CancelFunc) {
 	fmt.Print("createContext", userID, p)
@@ -93,9 +116,9 @@ If we want to verify the path of the request, we need to add it back.
 https://github.com/mattermost/mattermost/blob/751d84bf13aa63f4706843318e45e8ca8401eba5/server/channels/app/plugin_requests.go#L226
 */
 func (p *Plugin) fixedPath(handler http.HandlerFunc) http.HandlerFunc {
-	// We don't have 10.1 deployed yet
-	// pluginID := p.API.GetPluginID()
-	pluginID := "co.parabol.action"
+	// pre 10.1
+	// pluginID := "co.parabol.action"
+	pluginID := p.API.GetPluginID()
 	path := "/plugins/" + pluginID
 	return func(w http.ResponseWriter, r *http.Request) {
 		r.URL.Path = path + r.URL.Path
@@ -103,21 +126,26 @@ func (p *Plugin) fixedPath(handler http.HandlerFunc) http.HandlerFunc {
 	}
 }
 
-func (p *Plugin) notify(w http.ResponseWriter, r *http.Request) {
-	config := p.getConfiguration()
-	privKey := []byte(config.ParabolToken)
-	verifier, err := NewVerifier(privKey)
-	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		_, _ = w.Write([]byte(`{"error": "Verify config error"}`))
-		return
-	}
-	if err = httpsign.VerifyRequest("parabol", *verifier, r); err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		_, _ = w.Write([]byte(`{"error": "Verification error"}`))
-		return
-	}
+func (p *Plugin) verifiedFromParabol(handler http.HandlerFunc) http.HandlerFunc {
+	return p.fixedPath(func(w http.ResponseWriter, r *http.Request) {
+		config := p.getConfiguration()
+		privKey := []byte(config.ParabolToken)
+		verifier, err := NewVerifier(privKey)
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			_, _ = w.Write([]byte(`{"error": "Verify config error"}`))
+			return
+		}
+		if err = httpsign.VerifyRequest("parabol", *verifier, r); err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			_, _ = w.Write([]byte(`{"error": "Verification error"}`))
+			return
+		}
+		handler(w, r)
+	})
+}
 
+func (p *Plugin) notify(w http.ResponseWriter, r *http.Request) {
 	teamID := r.PathValue("teamID")
 	userID, err2 := p.API.KVGet(botUserID)
 
@@ -140,10 +168,34 @@ func (p *Plugin) notify(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (p *Plugin) login(c *Context, w http.ResponseWriter, r *http.Request) {
-	var variables json.RawMessage
-	if err := getJSON(r.Body, &variables); err != nil && err != io.EOF {
+func (p *Plugin) graphqlWebhook(w http.ResponseWriter, r *http.Request) {
+	var message struct {
+		Id string `json:"connectionId"`
+		Payload string `json:"payload"`
+	}
+	if err := getJSON(r.Body, &message); err != nil {
 		w.WriteHeader(http.StatusBadRequest)
+		msg := fmt.Sprintf(`{"error": "Error parsing message", "originalError": "%v"}`, err)
+		_, _ = w.Write([]byte(msg))
+		return
+	}
+	userId, _, found := strings.Cut(message.Id, "/")
+	if userId == "" || !found {
+		w.WriteHeader(http.StatusBadRequest)
+		_, _ = w.Write([]byte(`{"error": "Invalid connectionId"}`))
+		return
+	}
+	data := map[string]interface{}{"id": message.Id, "payload": message.Payload}
+	p.API.PublishWebSocketEvent("graphql", data, &model.WebsocketBroadcast{UserId: userId})
+	w.WriteHeader(http.StatusOK)
+}
+
+func (p *Plugin) login(c *Context, w http.ResponseWriter, clientRequest *http.Request) {
+	var variables json.RawMessage
+	if err := getJSON(clientRequest.Body, &variables); err != nil && err != io.EOF {
+		w.WriteHeader(http.StatusBadRequest)
+		msg := fmt.Sprintf(`{"error": "Error parsing variables", "originalError": "%v"}`, err)
+		_, _ = w.Write([]byte(msg))
 		return
 	}
 
@@ -169,7 +221,16 @@ func (p *Plugin) login(c *Context, w http.ResponseWriter, r *http.Request) {
 		_, _ = w.Write([]byte(`{"error": "Marshal error"}`))
 		return
 	}
-	res, err := client.Post(url, "application/json", bufio.NewReader(bytes.NewReader(requestBody)))
+
+	parabolRequest, err1 := http.NewRequest("POST", url, bufio.NewReader(bytes.NewReader(requestBody)))
+	if err1 != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		_, _ = w.Write([]byte(`{"error": "Error creating request"}`))
+		return
+	}
+	copyRequestHeaders(clientRequest, parabolRequest)
+
+	res, err := client.Do(parabolRequest)
 	if err != nil || res.StatusCode != http.StatusOK {
 		w.WriteHeader(http.StatusInternalServerError)
 		msg := fmt.Sprintf(`{"error": "Parabol server error", "originalError": "%v", "statusCode": "%v"}`, err, res.StatusCode)
@@ -193,40 +254,37 @@ func (p *Plugin) login(c *Context, w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 }
 
-func (p *Plugin) graphql(c *Context, w http.ResponseWriter, r *http.Request) {
+func (p *Plugin) graphql(c *Context, clientWriter http.ResponseWriter, clientRequest *http.Request) {
 	config := p.getConfiguration()
 	url := config.ParabolURL + "/graphql"
 	privKey := []byte(config.ParabolToken)
 
 	client, err := NewSigningClient(privKey)
 	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		_, _ = w.Write([]byte(`{"error": "Signing error"}`))
+		clientWriter.WriteHeader(http.StatusInternalServerError)
+		_, _ = clientWriter.Write([]byte(`{"error": "Signing error"}`))
 		return
 	}
-	defer r.Body.Close()
-	req, err1 := http.NewRequest("POST", url, r.Body)
+	defer clientRequest.Body.Close()
+	parabolRequest, err1 := http.NewRequest("POST", url, clientRequest.Body)
 	if err1 != nil {
-		w.WriteHeader(http.StatusInternalServerError)
+		clientWriter.WriteHeader(http.StatusInternalServerError)
 		msg := fmt.Sprintf(`{"error": "Request error", "originalError": "%v"}`, err1)
-		_, _ = w.Write([]byte(msg))
+		_, _ = clientWriter.Write([]byte(msg))
 		return
 	}
-	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("Accept", "application/json")
-	req.Header.Set("x-application-authorization", r.Header.Get("x-application-authorization"))
+	copyRequestHeaders(clientRequest, parabolRequest)
 
-	res, err2 := client.Do(req)
+	parabolResponse, err2 := client.Do(parabolRequest)
 	if err2 != nil {
-		http.Error(w, "Server Error", http.StatusInternalServerError)
+		http.Error(clientWriter, "Server Error", http.StatusInternalServerError)
 		msg := fmt.Sprintf(`{"error": "Request error", "originalError": "%v"}`, err2)
-		_, _ = w.Write([]byte(msg))
+		_, _ = clientWriter.Write([]byte(msg))
 		return
 	}
-	defer res.Body.Close()
+	defer parabolResponse.Body.Close()
 
-	w.WriteHeader(res.StatusCode)
-	_, _ = io.Copy(w, res.Body)
+	forwardResponse(parabolResponse, clientWriter)
 }
 
 func (p *Plugin) linkedTeams(c *Context, w http.ResponseWriter, r *http.Request) {
@@ -303,29 +361,22 @@ func (p *Plugin) getConfig(c *Context, w http.ResponseWriter, r *http.Request) {
 Endpoint for module federation, serves components from parabol.
 We cannot contact the Parabol instance directly from the webapp because of security settings on it.
 */
-func (p *Plugin) components(w http.ResponseWriter, r *http.Request) {
-	file := r.PathValue("file")
+func (p *Plugin) components(clientWriter http.ResponseWriter, clientRequest *http.Request) {
+	file := clientRequest.PathValue("file")
 	config := p.getConfiguration()
 	url := config.ParabolURL + "/components/" + file
 
 	client := &http.Client{}
-	res, err := client.Get(url)
+	parabolResponse, err := client.Get(url)
 	if err != nil {
-		http.Error(w, "Server Error", http.StatusInternalServerError)
+		http.Error(clientWriter, "Server Error", http.StatusInternalServerError)
 		msg := fmt.Sprintf(`{"error": "Request error", "originalError": "%v"}`, err)
-		_, _ = w.Write([]byte(msg))
+		_, _ = clientWriter.Write([]byte(msg))
 		return
 	}
-	defer res.Body.Close()
+	defer parabolResponse.Body.Close()
 
-	for header, values := range res.Header {
-		for _, value := range values {
-			w.Header().Add(header, value)
-		}
-	}
-
-	w.WriteHeader(res.StatusCode)
-	_, _ = io.Copy(w, res.Body)
+	forwardResponse(parabolResponse, clientWriter)
 }
 
 func (p *Plugin) parabolRedirect(w http.ResponseWriter, r *http.Request) {
@@ -336,20 +387,31 @@ func (p *Plugin) parabolRedirect(w http.ResponseWriter, r *http.Request) {
 }
 
 func (p *Plugin) connect(w http.ResponseWriter, r *http.Request) {
-	err := p.loadCommands()
-	if err != nil {
+	var config = ClientConfig{}
+	if err := getJSON(r.Body, &config); err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		msg := fmt.Sprintf(`{"error": "Error parsing commands", "originalError": "%v"}`, err)
+		_, _ = w.Write([]byte(msg))
+		return
+	}
+
+	commands := config.Commands
+	if err := p.loadCommands(commands); err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		msg := fmt.Sprintf(`{"error": "Error loading commands", "originalError": "%v"}`, err)
 		_, _ = w.Write([]byte(msg))
+		return
 	}
+
 	w.WriteHeader(http.StatusOK)
 }
 
 func (p *Plugin) ServeHTTP(c *plugin.Context, w http.ResponseWriter, r *http.Request) {
 	mux := http.NewServeMux()
-	mux.HandleFunc("POST /notify/{teamID}", p.fixedPath(p.notify))
+	mux.HandleFunc("POST /notify/{teamID}", p.verifiedFromParabol(p.notify))
 	mux.HandleFunc("POST /login", p.authenticated(p.login))
 	mux.HandleFunc("POST /graphql", p.authenticated(p.graphql))
+	mux.HandleFunc("POST /graphqlWebhook", p.verifiedFromParabol(p.graphqlWebhook))
 	mux.HandleFunc("GET /linkedTeams/{channelID}", p.authenticated(p.linkedTeams))
 	mux.HandleFunc("POST /linkTeam/{channelID}/{teamID}", p.authenticated(p.linkTeam))
 	mux.HandleFunc("POST /unlinkTeam/{channelID}/{teamID}", p.authenticated(p.unlinkTeam))
