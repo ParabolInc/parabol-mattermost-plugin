@@ -16,12 +16,11 @@ func (p *Plugin) readArray(key string) ([]string, error) {
 		return nil, err
 	}
 
-	var arr []string
+	arr := []string{}
 	if len(raw) == 0 {
 		return arr, nil
 	}
-	err2 := json.Unmarshal(raw, &arr)
-	if err2 != nil {
+	if err2 := json.Unmarshal(raw, &arr); err2 != nil {
 		return nil, err2
 	}
 	return arr, nil
