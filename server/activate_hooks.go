@@ -13,6 +13,26 @@ import (
 // This demo implementation logs a message to the demo channel whenever the plugin is activated.
 // It also creates a demo bot account
 func (p *Plugin) OnActivate() error {
+	// Start with the fallback, these can be overridden by the client
+	p.commands = []SlashCommand{
+		{
+			Trigger:     "start",
+			Description: "Start a Parabol Activity",
+		},
+		{
+			Trigger:     "task",
+			Description: "Adds a task in Parabol",
+		},
+		{
+			Trigger:     "invite",
+			Description: "Shares an invite to a Parabol team in the current channel",
+		},
+		{
+			Trigger:     "share",
+			Description: "Shares a Parabol activity so channel members can join",
+		},
+	}
+
 	if err := p.registerCommands(); err != nil {
 		return errors.Wrap(err, "failed to register commands")
 	}

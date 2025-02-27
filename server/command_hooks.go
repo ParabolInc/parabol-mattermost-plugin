@@ -80,17 +80,6 @@ func (p *Plugin) executeCommand(args *model.CommandArgs) *model.CommandResponse 
 			ResponseType: model.CommandResponseTypeEphemeral,
 			Text:         helpText,
 		}
-	case "connect":
-		if err := p.loadCommands(); err != nil {
-			return &model.CommandResponse{
-				ResponseType: model.CommandResponseTypeEphemeral,
-				Text:         fmt.Sprintf("Failed to connect to Parabol, check the configuration (%s)", err),
-			}
-		}
-		return &model.CommandResponse{
-			ResponseType: model.CommandResponseTypeEphemeral,
-			Text:         "Successfully connected to Parabol",
-		}
 	// this case is left here for development, so it's easy to copy the styles
 	case "dialog":
 		dialogRequest := model.OpenDialogRequest{
