@@ -5,9 +5,11 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
+	"strings"
 	"sync"
 	"time"
 
@@ -21,6 +23,8 @@ import (
 const (
 	botUserID      = "botUserID"
 	requestTimeout = 30 * time.Second
+	// well below the 4kb limit of nginx
+	maxHeaderLength = 1024
 )
 
 type SlashCommand struct {
@@ -50,6 +54,20 @@ type Context struct {
 }
 
 type HTTPHandlerFuncWithContext func(c *Context, w http.ResponseWriter, r *http.Request)
+
+func safeCopyHeader(from http.Header, header string, to http.Header) error {
+	for _, value := range from.Values(header) {
+		if len(header)+len(value) > maxHeaderLength {
+			return errors.New("header too long")
+		}
+		// Prevent header injection by disallowing newline characters
+		if strings.ContainsAny(header, "\r\n") {
+			return errors.New("invalid characters in header")
+		}
+		to.Add(header, value)
+	}
+	return nil
+}
 
 func (p *Plugin) createContext(userID string) (*Context, context.CancelFunc) {
 	fmt.Print("createContext", userID, p)
@@ -214,7 +232,12 @@ func (p *Plugin) graphql(c *Context, w http.ResponseWriter, r *http.Request) {
 	}
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Accept", "application/json")
-	req.Header.Set("x-application-authorization", r.Header.Get("x-application-authorization"))
+	if errCopy := safeCopyHeader(r.Header, "x-application-authorization", req.Header); errCopy != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		msg := fmt.Sprintf(`{"error": "Header error", "originalError": "%v"}`, errCopy)
+		_, _ = w.Write([]byte(msg))
+		return
+	}
 
 	res, err2 := client.Do(req)
 	if err2 != nil {
@@ -318,9 +341,12 @@ func (p *Plugin) components(w http.ResponseWriter, r *http.Request) {
 	}
 	defer res.Body.Close()
 
-	for header, values := range res.Header {
-		for _, value := range values {
-			w.Header().Add(header, value)
+	for header := range res.Header {
+		if err := safeCopyHeader(res.Header, header, w.Header()); err != nil {
+			http.Error(w, "Server Error", http.StatusInternalServerError)
+			msg := fmt.Sprintf(`{"error": "Header error", "originalError": "%v"}`, err)
+			_, _ = w.Write([]byte(msg))
+			return
 		}
 	}
 
