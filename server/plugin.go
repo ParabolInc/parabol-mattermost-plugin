@@ -137,13 +137,24 @@ func (p *Plugin) notify(w http.ResponseWriter, r *http.Request) {
 	}
 
 	teamID := r.PathValue("teamID")
+	channelID := r.PathValue("channelID")
 	userID, err2 := p.API.KVGet(botUserID)
 
 	var props map[string]interface{}
 	err3 := getJSON(r.Body, &props)
-	channels, err4 := p.getChannels(teamID)
 
-	if (err2 != nil) || (err3 != nil) || (err4 != nil) {
+	channels := []string{}
+	if channelID != "" {
+		channels = append(channels, channelID)
+	} else {
+		otherChannels, err4 := p.getChannels(teamID)
+		if err4 != nil {
+			return
+		}
+		channels = append(channels, otherChannels...)
+	}
+
+	if (err2 != nil) || (err3 != nil) {
 		return
 	}
 	for _, channel := range channels {
@@ -374,6 +385,7 @@ func (p *Plugin) connect(w http.ResponseWriter, r *http.Request) {
 func (p *Plugin) ServeHTTP(c *plugin.Context, w http.ResponseWriter, r *http.Request) {
 	mux := http.NewServeMux()
 	mux.HandleFunc("POST /notify/{teamID}", p.fixedPath(p.notify))
+	mux.HandleFunc("POST /notify/{teamID}/{channelID}", p.fixedPath(p.notify))
 	mux.HandleFunc("POST /login", p.authenticated(p.login))
 	mux.HandleFunc("POST /graphql", p.authenticated(p.graphql))
 	mux.HandleFunc("GET /linkedTeams/{channelID}", p.authenticated(p.linkedTeams))
