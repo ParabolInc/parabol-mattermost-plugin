@@ -136,36 +136,21 @@ func (p *Plugin) notify(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	teamID := r.PathValue("teamID")
 	channelID := r.PathValue("channelID")
 	userID, err2 := p.API.KVGet(botUserID)
 
 	var props map[string]interface{}
 	err3 := getJSON(r.Body, &props)
 
-	channels := []string{}
-	if channelID != "" {
-		channels = append(channels, channelID)
-	} else {
-		otherChannels, err4 := p.getChannels(teamID)
-		if err4 != nil {
-			return
-		}
-		channels = append(channels, otherChannels...)
-	}
-
 	if (err2 != nil) || (err3 != nil) {
 		return
 	}
-	for _, channel := range channels {
-		_, err := p.API.CreatePost(&model.Post{
-			ChannelId: channel,
-			Props:     props,
-			UserId:    string(userID),
-		})
-		if err != nil {
-			fmt.Println("Post err", err)
-		}
+	if _, err := p.API.CreatePost(&model.Post{
+		ChannelId: channelID,
+		Props:     props,
+		UserId:    string(userID),
+	}); err != nil {
+		fmt.Println("Post err", err)
 	}
 }
 
@@ -263,55 +248,6 @@ func (p *Plugin) graphql(c *Context, w http.ResponseWriter, r *http.Request) {
 	_, _ = io.Copy(w, res.Body)
 }
 
-func (p *Plugin) linkedTeams(c *Context, w http.ResponseWriter, r *http.Request) {
-	channelID := r.PathValue("channelID")
-	teams, err := p.getTeams(channelID)
-
-	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		_, _ = w.Write([]byte(`{"error": "Could not read linked teams"}`))
-		return
-	}
-
-	body, err := json.Marshal(teams)
-	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		_, _ = w.Write([]byte(`{"error": "Marshal error"}`))
-		return
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	_, err = w.Write(body)
-	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		_, _ = w.Write([]byte(`{"error": "Response error"}`))
-		return
-	}
-}
-
-func (p *Plugin) linkTeam(c *Context, w http.ResponseWriter, r *http.Request) {
-	channelID := r.PathValue("channelID")
-	teamID := r.PathValue("teamID")
-	err := p.linkTeamToChannel(channelID, teamID)
-	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		msg := fmt.Sprintf(`{"error": "Error linking team to channel", "originalError": "%v"}`, err)
-		_, _ = w.Write([]byte(msg))
-		return
-	}
-}
-
-func (p *Plugin) unlinkTeam(c *Context, w http.ResponseWriter, r *http.Request) {
-	channelID := r.PathValue("channelID")
-	teamID := r.PathValue("teamID")
-	err := p.unlinkTeamFromChannel(channelID, teamID)
-	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		_, _ = w.Write([]byte(`{"error": "Error unlinking team from channel"}`))
-		return
-	}
-}
-
 func (p *Plugin) getConfig(c *Context, w http.ResponseWriter, r *http.Request) {
 	config := p.getConfiguration()
 	body, err := json.Marshal(struct {
@@ -384,13 +320,9 @@ func (p *Plugin) connect(w http.ResponseWriter, r *http.Request) {
 
 func (p *Plugin) ServeHTTP(c *plugin.Context, w http.ResponseWriter, r *http.Request) {
 	mux := http.NewServeMux()
-	mux.HandleFunc("POST /notify/{teamID}", p.fixedPath(p.notify))
-	mux.HandleFunc("POST /notify/{teamID}/{channelID}", p.fixedPath(p.notify))
+	mux.HandleFunc("POST /notify/{channelID}", p.fixedPath(p.notify))
 	mux.HandleFunc("POST /login", p.authenticated(p.login))
 	mux.HandleFunc("POST /graphql", p.authenticated(p.graphql))
-	mux.HandleFunc("GET /linkedTeams/{channelID}", p.authenticated(p.linkedTeams))
-	mux.HandleFunc("POST /linkTeam/{channelID}/{teamID}", p.authenticated(p.linkTeam))
-	mux.HandleFunc("POST /unlinkTeam/{channelID}/{teamID}", p.authenticated(p.unlinkTeam))
 	mux.HandleFunc("GET /config", p.authenticated(p.getConfig))
 	mux.HandleFunc("GET /components/{file}", p.components)
 	mux.HandleFunc("/parabol/{path...}", p.parabolRedirect)
