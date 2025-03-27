@@ -70,7 +70,6 @@ func safeCopyHeader(from http.Header, header string, to http.Header) error {
 }
 
 func (p *Plugin) createContext(userID string) (*Context, context.CancelFunc) {
-	fmt.Print("createContext", userID, p)
 	user, _ := p.API.GetUser(userID)
 	// TODO check email and email verified
 
@@ -98,7 +97,6 @@ func (p *Plugin) authenticated(handler HTTPHandlerFuncWithContext) http.HandlerF
 			_, _ = w.Write([]byte(`{"error": "Not authorized"}`))
 		}
 
-		fmt.Print("authenticated", userID)
 		context, cancel := p.createContext(userID)
 		defer cancel()
 		handler(context, w, r)
@@ -130,19 +128,26 @@ func (p *Plugin) notify(w http.ResponseWriter, r *http.Request) {
 		_, _ = w.Write([]byte(`{"error": "Verify config error"}`))
 		return
 	}
-	if err = httpsign.VerifyRequest("parabol", *verifier, r); err != nil {
+	if err1 := httpsign.VerifyRequest("parabol", *verifier, r); err1 != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		_, _ = w.Write([]byte(`{"error": "Verification error"}`))
 		return
 	}
 
 	channelID := r.PathValue("channelID")
-	userID, err2 := p.API.KVGet(botUserID)
+	userID, err1 := p.API.KVGet(botUserID)
+	if err1 != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		msg := fmt.Sprintf(`{"error": "Bot User not found", "originalError": "%v"}`, err1)
+		_, _ = w.Write([]byte(msg))
+		return
+	}
 
 	var props map[string]interface{}
-	err3 := getJSON(r.Body, &props)
-
-	if (err2 != nil) || (err3 != nil) {
+	if err := getJSON(r.Body, &props); err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		msg := fmt.Sprintf(`{"error": "Error parsing body", "originalError": "%v"}`, err)
+		_, _ = w.Write([]byte(msg))
 		return
 	}
 	if _, err := p.API.CreatePost(&model.Post{
@@ -150,7 +155,10 @@ func (p *Plugin) notify(w http.ResponseWriter, r *http.Request) {
 		Props:     props,
 		UserId:    string(userID),
 	}); err != nil {
-		fmt.Println("Post err", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		msg := fmt.Sprintf(`{"error": "Error posting notification", "originalError": "%v"}`, err)
+		_, _ = w.Write([]byte(msg))
+		return
 	}
 }
 
