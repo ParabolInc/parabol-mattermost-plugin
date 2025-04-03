@@ -15,7 +15,6 @@ import (
 
 	"github.com/mattermost/mattermost/server/public/model"
 	"github.com/mattermost/mattermost/server/public/plugin"
-	"github.com/mattermost/mattermost/server/public/pluginapi/experimental/bot/logger"
 
 	"github.com/yaronf/httpsign"
 )
@@ -30,6 +29,10 @@ const (
 type SlashCommand struct {
 	Trigger     string `json:"trigger"`
 	Description string `json:"description"`
+}
+
+type ClientConfig struct {
+	Commands []SlashCommand `json:"commands"`
 }
 
 // Plugin implements the interface expected by the Mattermost server to communicate between the server and plugin processes.
@@ -50,7 +53,6 @@ type Context struct {
 	Ctx    context.Context
 	UserID string
 	User   *model.User
-	Log    logger.Logger
 }
 
 type HTTPHandlerFuncWithContext func(c *Context, w http.ResponseWriter, r *http.Request)
@@ -73,17 +75,12 @@ func (p *Plugin) createContext(userID string) (*Context, context.CancelFunc) {
 	user, _ := p.API.GetUser(userID)
 	// TODO check email and email verified
 
-	logger := logger.New(p.API).With(logger.LogContext{
-		"userid": userID,
-	})
-
 	ctx, cancel := context.WithTimeout(context.Background(), requestTimeout)
 
 	context := &Context{
 		Ctx:    ctx,
 		UserID: userID,
 		User:   user,
-		Log:    logger,
 	}
 
 	return context, cancel
@@ -95,6 +92,7 @@ func (p *Plugin) authenticated(handler HTTPHandlerFuncWithContext) http.HandlerF
 		if userID == "" {
 			w.WriteHeader(http.StatusUnauthorized)
 			_, _ = w.Write([]byte(`{"error": "Not authorized"}`))
+			return
 		}
 
 		context, cancel := p.createContext(userID)
@@ -245,7 +243,7 @@ func (p *Plugin) graphql(c *Context, w http.ResponseWriter, r *http.Request) {
 
 	res, err2 := client.Do(req)
 	if err2 != nil {
-		http.Error(w, "Server Error", http.StatusInternalServerError)
+		w.WriteHeader(http.StatusInternalServerError)
 		msg := fmt.Sprintf(`{"error": "Request error", "originalError": "%v"}`, err2)
 		_, _ = w.Write([]byte(msg))
 		return
@@ -269,12 +267,7 @@ func (p *Plugin) getConfig(c *Context, w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	w.Header().Set("Content-Type", "application/json")
-	_, err = w.Write(body)
-	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		_, _ = w.Write([]byte(`{"error": "Response error"}`))
-		return
-	}
+	_, _ = w.Write(body)
 }
 
 /*
@@ -289,7 +282,7 @@ func (p *Plugin) components(w http.ResponseWriter, r *http.Request) {
 	client := &http.Client{}
 	res, err := client.Get(url)
 	if err != nil {
-		http.Error(w, "Server Error", http.StatusInternalServerError)
+		http.Error(w, "Server Error", http.StatusBadGateway)
 		msg := fmt.Sprintf(`{"error": "Request error", "originalError": "%v"}`, err)
 		_, _ = w.Write([]byte(msg))
 		return
@@ -316,12 +309,34 @@ func (p *Plugin) parabolRedirect(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, url, http.StatusSeeOther)
 }
 
-func (p *Plugin) connect(w http.ResponseWriter, r *http.Request) {
-	err := p.loadCommands()
-	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		msg := fmt.Sprintf(`{"error": "Error loading commands", "originalError": "%v"}`, err)
+func commandsEqual(a, b []SlashCommand) bool {
+	if len(a) != len(b) {
+		return false
+	}
+	for i := range a {
+		if a[i].Trigger != b[i].Trigger || a[i].Description != b[i].Description {
+			return false
+		}
+	}
+	return true
+}
+
+func (p *Plugin) connect(c* Context, w http.ResponseWriter, r *http.Request) {
+	var config ClientConfig
+	if err := getJSON(r.Body, &config); err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		msg := fmt.Sprintf(`{"error": "Error parsing commands", "originalError": "%v"}`, err)
 		_, _ = w.Write([]byte(msg))
+		return
+	}
+	if !commandsEqual(p.commands, config.Commands) {
+		p.commands = config.Commands
+		if err := p.registerCommands(); err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			msg := fmt.Sprintf(`{"error": "Error registering commands", "originalError": "%v"}`, err)
+			_, _ = w.Write([]byte(msg))
+			return
+		}
 	}
 	w.WriteHeader(http.StatusOK)
 }
@@ -331,9 +346,9 @@ func (p *Plugin) ServeHTTP(c *plugin.Context, w http.ResponseWriter, r *http.Req
 	mux.HandleFunc("POST /notify/{channelID}", p.fixedPath(p.notify))
 	mux.HandleFunc("POST /login", p.authenticated(p.login))
 	mux.HandleFunc("POST /graphql", p.authenticated(p.graphql))
+	mux.HandleFunc("POST /connect", p.authenticated(p.connect))
 	mux.HandleFunc("GET /config", p.authenticated(p.getConfig))
 	mux.HandleFunc("GET /components/{file}", p.components)
 	mux.HandleFunc("/parabol/{path...}", p.parabolRedirect)
-	mux.HandleFunc("/connect", p.connect)
 	mux.ServeHTTP(w, r)
 }

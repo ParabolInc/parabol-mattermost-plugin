@@ -78,43 +78,17 @@ func (p *Plugin) OnConfigurationChange() error {
 	}
 	configuration.ParabolURL = strings.TrimSuffix(configuration.ParabolURL, "/")
 	p.setConfiguration(configuration)
-	return p.loadCommands()
+
+	return nil
 }
 
-func (p *Plugin) loadCommands() error {
-	// start with a fallback
-	p.commands = []SlashCommand{
-		{
-			Trigger:     "start",
-			Description: "Start a Parabol Activity",
-		},
-		{
-			Trigger:     "task",
-			Description: "Adds a task in Parabol",
-		},
-		{
-			Trigger:     "invite",
-			Description: "Shares an invite to a Parabol team in the current channel",
-		},
-		{
-			Trigger:     "share",
-			Description: "Shares a Parabol activity so channel members can join",
-		},
-	}
-	_ = p.registerCommands()
-
-	url := p.configuration.ParabolURL + "/components/mattermost-plugin-commands.json"
+// Check if we can connect to Parabol
+func (p *Plugin) checkConnection() error {
+	url := p.configuration.ParabolURL + "/components/mattermost-plugin-entry.js"
 	client := &http.Client{}
-	res, err := client.Get(url)
-	if err != nil {
+	if _, err := client.Get(url); err != nil {
 		return errors.Wrap(err, "failed to connect to Parabol")
 	}
-
-	defer res.Body.Close()
-	var commands []SlashCommand
-	if err := getJSON(res.Body, &commands); err != nil {
-		return errors.Wrap(err, "failed to parse Parabol response")
-	}
-	p.commands = commands
-	return p.registerCommands()
+	return nil
 }
+

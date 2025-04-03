@@ -80,8 +80,8 @@ func (p *Plugin) executeCommand(args *model.CommandArgs) *model.CommandResponse 
 			ResponseType: model.CommandResponseTypeEphemeral,
 			Text:         helpText,
 		}
-	case "connect":
-		if err := p.loadCommands(); err != nil {
+	case "check":
+		if err := p.checkConnection(); err != nil {
 			return &model.CommandResponse{
 				ResponseType: model.CommandResponseTypeEphemeral,
 				Text:         fmt.Sprintf("Failed to connect to Parabol, check the configuration (%s)", err),
