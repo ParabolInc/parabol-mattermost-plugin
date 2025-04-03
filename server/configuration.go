@@ -86,9 +86,11 @@ func (p *Plugin) OnConfigurationChange() error {
 func (p *Plugin) checkConnection() error {
 	url := p.configuration.ParabolURL + "/components/mattermost-plugin-entry.js"
 	client := &http.Client{}
-	if _, err := client.Get(url); err != nil {
+	res, err := client.Get(url)
+	if err != nil {
 		return errors.Wrap(err, "failed to connect to Parabol")
 	}
+	res.Body.Close()
+
 	return nil
 }
-

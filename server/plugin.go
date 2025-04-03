@@ -321,7 +321,7 @@ func commandsEqual(a, b []SlashCommand) bool {
 	return true
 }
 
-func (p *Plugin) connect(c* Context, w http.ResponseWriter, r *http.Request) {
+func (p *Plugin) connect(c *Context, w http.ResponseWriter, r *http.Request) {
 	var config ClientConfig
 	if err := getJSON(r.Body, &config); err != nil {
 		w.WriteHeader(http.StatusBadRequest)
