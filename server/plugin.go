@@ -234,6 +234,14 @@ func (p *Plugin) graphql(w http.ResponseWriter, r *http.Request) {
 	}
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Accept", "application/json")
+
+	if errCopy := safeCopyHeader(r.Header, "x-application-authorization", req.Header); errCopy != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		msg := fmt.Sprintf(`{"error": "Header error", "originalError": "%v"}`, errCopy)
+		_, _ = w.Write([]byte(msg))
+		return
+	}
+
 	if errCopy := safeCopyHeader(r.Header, "authorization", req.Header); errCopy != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		msg := fmt.Sprintf(`{"error": "Header error", "originalError": "%v"}`, errCopy)
