@@ -63,7 +63,7 @@ func safeCopyHeader(from http.Header, header string, to http.Header) error {
 			return errors.New("header too long")
 		}
 		// Prevent header injection by disallowing newline characters
-		if strings.ContainsAny(header, "\r\n") {
+		if strings.ContainsAny(value, "\r\n") {
 			return errors.New("invalid characters in header")
 		}
 		to.Add(header, value)
@@ -213,7 +213,7 @@ func (p *Plugin) login(c *Context, w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 }
 
-func (p *Plugin) graphql(c *Context, w http.ResponseWriter, r *http.Request) {
+func (p *Plugin) graphql(w http.ResponseWriter, r *http.Request) {
 	config := p.getConfiguration()
 	url := config.ParabolURL + "/graphql"
 	privKey := []byte(config.ParabolToken)
@@ -234,7 +234,7 @@ func (p *Plugin) graphql(c *Context, w http.ResponseWriter, r *http.Request) {
 	}
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Accept", "application/json")
-	if errCopy := safeCopyHeader(r.Header, "x-application-authorization", req.Header); errCopy != nil {
+	if errCopy := safeCopyHeader(r.Header, "authorization", req.Header); errCopy != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		msg := fmt.Sprintf(`{"error": "Header error", "originalError": "%v"}`, errCopy)
 		_, _ = w.Write([]byte(msg))
@@ -345,7 +345,7 @@ func (p *Plugin) ServeHTTP(c *plugin.Context, w http.ResponseWriter, r *http.Req
 	mux := http.NewServeMux()
 	mux.HandleFunc("POST /notify/{channelID}", p.fixedPath(p.notify))
 	mux.HandleFunc("POST /login", p.authenticated(p.login))
-	mux.HandleFunc("POST /graphql", p.authenticated(p.graphql))
+	mux.HandleFunc("POST /graphql", p.graphql)
 	mux.HandleFunc("POST /connect", p.authenticated(p.connect))
 	mux.HandleFunc("GET /config", p.authenticated(p.getConfig))
 	mux.HandleFunc("GET /components/{file}", p.components)
