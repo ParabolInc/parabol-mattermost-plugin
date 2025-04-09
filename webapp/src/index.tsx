@@ -1,7 +1,7 @@
 import React from 'react'
 import {Store, AnyAction} from 'redux'
 
-import {GlobalState} from 'mattermost-redux/types/store'
+import {GlobalState} from '@mattermost/types/store'
 
 import {init, loadRemote} from '@module-federation/enhanced/runtime'
 

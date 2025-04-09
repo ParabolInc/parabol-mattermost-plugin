@@ -1,0 +1,14 @@
+diff --git a/node_modules/mattermost-redux/package.json b/node_modules/mattermost-redux/package.json
+index 879ca0f..9527558 100644
+--- a/node_modules/mattermost-redux/package.json
++++ b/node_modules/mattermost-redux/package.json
+@@ -13,8 +13,7 @@
+   ],
+   "exports": {
+     "./*": [
+-      "./lib/*/index.js",
+-      "./lib/*.js"
++      "./lib/*"
+     ]
+   },
+   "typesVersions": {
