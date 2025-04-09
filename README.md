@@ -1,8 +1,9 @@
 # Parabol Mattermost Plugin
 
-## WIP ##
+Manage your Parabol activities, add reflections or tasks and invite your team directly from Mattermost.
 
-This plugin is still work in progress and not yet ready for production use.
+Right now this plugin can only be used with self-hosted versions of both Parabol and Mattermost.
+Both need to be configured to use the same IdP and must not accept other login methods.
 
 ## Requirements
 
