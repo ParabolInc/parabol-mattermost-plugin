@@ -190,14 +190,13 @@ func (p *Plugin) login(c *Context, w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	res, err := client.Post(url, "application/json", bufio.NewReader(bytes.NewReader(requestBody)))
-	if err != nil || res.StatusCode != http.StatusOK {
+	w.Header().Set("Content-Type", "application/json")
+	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		msg := fmt.Sprintf(`{"error": "Parabol server error", "originalError": "%v", "statusCode": "%v"}`, err, res.StatusCode)
 		_, _ = w.Write([]byte(msg))
 		return
 	}
-
-	w.Header().Set("Content-Type", "application/json")
 	defer res.Body.Close()
 	responseBody, err := io.ReadAll(res.Body)
 	if err != nil {
@@ -205,12 +204,19 @@ func (p *Plugin) login(c *Context, w http.ResponseWriter, r *http.Request) {
 		_, _ = w.Write([]byte(`{"error": "Serialization error"}`))
 		return
 	}
+
+	if res.StatusCode != http.StatusOK {
+		w.WriteHeader(res.StatusCode)
+		msg := fmt.Sprintf(`{"error": "%s"}`, responseBody)
+		_, _ = w.Write([]byte(msg))
+		return
+	}
+
 	if _, err = w.Write(responseBody); err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		_, _ = w.Write([]byte(`{"error": "Response error"}`))
 		return
 	}
-	w.WriteHeader(http.StatusOK)
 }
 
 func (p *Plugin) graphql(w http.ResponseWriter, r *http.Request) {
