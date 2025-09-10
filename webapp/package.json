@@ -10,8 +10,7 @@
     "test": "jest --forceExit --detectOpenHandles --verbose",
     "test:watch": "jest --watch",
     "test-ci": "jest --forceExit --detectOpenHandles --maxWorkers=2",
-    "check-types": "tsc",
-    "postinstall": "patch-package"
+    "check-types": "tsc"
   },
   "engines": {
     "node": ">=18.17.0"
@@ -57,7 +56,6 @@
     "jest": "27.4.7",
     "jest-canvas-mock": "2.3.1",
     "jest-junit": "13.0.0",
-    "patch-package": "8.0.0",
     "style-loader": "3.3.1",
     "webpack": "5.94.0",
     "webpack-cli": "5.0.1"
