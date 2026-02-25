@@ -67,18 +67,19 @@ func (p *Plugin) executeCommand(args *model.CommandArgs) *model.CommandResponse 
 
 	switch command {
 	case "help":
-		helpText := commandHelpTitle
+		helpTextBuilder := strings.Builder{}
+		helpTextBuilder.WriteString(commandHelpTitle)
 		if len(p.commands) == 0 {
-			helpText += "\n\nFailed to connect to Parabol, check the configuration."
+			helpTextBuilder.WriteString("\n\nFailed to connect to Parabol, check the configuration.")
 		} else {
 			for _, commandDef := range p.commands {
-				helpText += fmt.Sprintf("\n- `/%s %s` - %s", commandTrigger, commandDef.Trigger, commandDef.Description)
+				helpTextBuilder.WriteString(fmt.Sprintf("\n- `/%s %s` - %s", commandTrigger, commandDef.Trigger, commandDef.Description))
 			}
 		}
 
 		return &model.CommandResponse{
 			ResponseType: model.CommandResponseTypeEphemeral,
-			Text:         helpText,
+			Text:         helpTextBuilder.String(),
 		}
 	case "check":
 		if err := p.checkConnection(); err != nil {
@@ -109,7 +110,7 @@ func (p *Plugin) executeCommand(args *model.CommandArgs) *model.CommandResponse 
 		return &model.CommandResponse{}
 	default:
 		for _, commandDef := range p.commands {
-			data := map[string]interface{}{"fields": fields}
+			data := map[string]any{"fields": fields}
 			if commandDef.Trigger == command {
 				p.API.PublishWebSocketEvent(commandDef.Trigger, data, &model.WebsocketBroadcast{UserId: args.UserId})
 				return &model.CommandResponse{}

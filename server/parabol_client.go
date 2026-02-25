@@ -8,8 +8,8 @@ import (
 	"github.com/yaronf/httpsign"
 )
 
-func getJSON(body io.ReadCloser, target interface{}) error {
-	defer body.Close()
+func getJSON(body io.ReadCloser, target any) error {
+	defer func() { _ = body.Close() }()
 	return json.NewDecoder(body).Decode(target)
 }
 

@@ -35,7 +35,7 @@ func (p *Plugin) OnActivate() error {
 			return errors.Wrap(err, "failed to get bundle path")
 		}
 
-		profileImage, err := os.ReadFile(filepath.Join(bundlePath, "assets", "parabol.png"))
+		profileImage, err := os.ReadFile(filepath.Join(bundlePath, "assets", "parabol.png")) //nolint:gosec
 		if err != nil {
 			return errors.Wrap(err, "failed to read profile image")
 		}

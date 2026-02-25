@@ -30,7 +30,7 @@ type configuration struct {
 // Clone shallow copies the configuration. Your implementation may require a deep copy if
 // your configuration has reference types.
 func (c *configuration) Clone() *configuration {
-	var clone = *c
+	clone := *c
 	return &clone
 }
 
@@ -70,7 +70,7 @@ func (p *Plugin) setConfiguration(configuration *configuration) {
 
 // OnConfigurationChange is invoked when configuration changes may have been made.
 func (p *Plugin) OnConfigurationChange() error {
-	var configuration = new(configuration)
+	configuration := new(configuration)
 
 	// Load the public configuration fields from the Mattermost server configuration.
 	if err := p.API.LoadPluginConfiguration(configuration); err != nil {
@@ -90,7 +90,7 @@ func (p *Plugin) checkConnection() error {
 	if err != nil {
 		return errors.Wrap(err, "failed to connect to Parabol")
 	}
-	res.Body.Close()
+	defer func() { _ = res.Body.Close() }()
 
 	return nil
 }

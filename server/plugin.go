@@ -141,7 +141,7 @@ func (p *Plugin) notify(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var props map[string]interface{}
+	var props map[string]any
 	if err := getJSON(r.Body, &props); err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		msg := fmt.Sprintf(`{"error": "Error parsing body", "originalError": "%v"}`, err)
@@ -183,7 +183,6 @@ func (p *Plugin) login(c *Context, w http.ResponseWriter, r *http.Request) {
 		Email: c.User.Email,
 	}
 	requestBody, err := json.Marshal(query)
-
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		_, _ = w.Write([]byte(`{"error": "Marshal error"}`))
@@ -197,7 +196,7 @@ func (p *Plugin) login(c *Context, w http.ResponseWriter, r *http.Request) {
 		_, _ = w.Write([]byte(msg))
 		return
 	}
-	defer res.Body.Close()
+	defer func() { _ = res.Body.Close() }()
 	responseBody, err := io.ReadAll(res.Body)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
@@ -230,7 +229,7 @@ func (p *Plugin) graphql(w http.ResponseWriter, r *http.Request) {
 		_, _ = w.Write([]byte(`{"error": "Signing error"}`))
 		return
 	}
-	defer r.Body.Close()
+	defer func() { _ = r.Body.Close() }()
 	req, err1 := http.NewRequest("POST", url, r.Body)
 	if err1 != nil {
 		w.WriteHeader(http.StatusInternalServerError)
@@ -262,7 +261,7 @@ func (p *Plugin) graphql(w http.ResponseWriter, r *http.Request) {
 		_, _ = w.Write([]byte(msg))
 		return
 	}
-	defer res.Body.Close()
+	defer func() { _ = res.Body.Close() }()
 
 	w.WriteHeader(res.StatusCode)
 	_, _ = io.Copy(w, res.Body)
@@ -301,7 +300,7 @@ func (p *Plugin) components(w http.ResponseWriter, r *http.Request) {
 		_, _ = w.Write([]byte(msg))
 		return
 	}
-	defer res.Body.Close()
+	defer func() { _ = res.Body.Close() }()
 
 	for header := range res.Header {
 		if err := safeCopyHeader(res.Header, header, w.Header()); err != nil {
