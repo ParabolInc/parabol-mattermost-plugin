@@ -2,7 +2,7 @@ name: mattermost-plugin-dev
 
 services:
   postgres:
-    image: postgres:13-alpine
+    image: postgres:16-alpine
     restart: unless-stopped
     security_opt:
       - no-new-privileges:true
@@ -22,7 +22,8 @@ services:
   mattermost:
     depends_on:
       - postgres
-    image: mattermost/mattermost-team-edition:10.2.0
+    image: mattermost/mattermost-team-edition:11.3.2
+    platform: linux/amd64
     restart: unless-stopped
     #security_opt:
     #  - no-new-privileges:true
