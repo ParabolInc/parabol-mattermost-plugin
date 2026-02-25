@@ -3,7 +3,7 @@ import {Store, AnyAction} from 'redux'
 
 import {GlobalState} from '@mattermost/types/store'
 
-import {init, loadRemote} from '@module-federation/enhanced/runtime'
+import {createInstance} from '@module-federation/enhanced/runtime'
 
 import manifest from '@/manifest'
 import {PluginRegistry} from '@/types/mattermost-webapp'
@@ -20,7 +20,7 @@ export default class Plugin {
     const pluginServerRoute = getPluginServerRoute(store.getState())
 
     try {
-      init({
+      const mf = createInstance({
         name: 'parabol-main',
         remotes: [{
           name: 'parabol',
@@ -28,7 +28,7 @@ export default class Plugin {
         }],
       })
 
-      const plugin = await loadRemote<any>('parabol/plugin')
+      const plugin = await mf.loadRemote<any>('parabol/plugin')
       plugin?.init(registry, store)
       console.log(`Loaded plugin components ${id}`)
     } catch (e) {
@@ -41,7 +41,7 @@ export default class Plugin {
 
       registry.registerChannelHeaderButtonAction(
         <img src={iconUrl}/>,
-        () => store.dispatch(toggleRHSPlugin as any),
+        () => store.dispatch(toggleRHSPlugin),
         'Open Parabol Panel',
         'Open Parabol Panel',
       )

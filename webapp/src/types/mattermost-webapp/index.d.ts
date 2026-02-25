@@ -3,7 +3,7 @@
 
 /* eslint-disable max-lines,no-shadow,no-use-before-define */
 
-import type {Reducer} from 'redux'
+import type {AnyAction, Reducer} from 'redux'
 
 import type {WebSocketMessage} from '@mattermost/client'
 import type {Channel} from '@mattermost/types/channels'
@@ -873,9 +873,9 @@ export interface PluginRegistry {
     }]
   ): {
     id: UniqueIdentifier;
-    showRHSPlugin: object;
-    hideRHSPlugin: object;
-    toggleRHSPlugin: object;
+    showRHSPlugin: AnyAction;
+    hideRHSPlugin: AnyAction;
+    toggleRHSPlugin: AnyAction;
   };
 
   /**
