@@ -13,6 +13,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/gorilla/mux"
 	"github.com/mattermost/mattermost/server/public/model"
 	"github.com/mattermost/mattermost/server/public/plugin"
 
@@ -47,6 +48,9 @@ type Plugin struct {
 	configuration *configuration
 
 	commands []SlashCommand
+
+	// router is the HTTP router for handling API requests.
+	router *mux.Router
 }
 
 type Context struct {
@@ -107,9 +111,7 @@ If we want to verify the path of the request, we need to add it back.
 https://github.com/mattermost/mattermost/blob/751d84bf13aa63f4706843318e45e8ca8401eba5/server/channels/app/plugin_requests.go#L226
 */
 func (p *Plugin) fixedPath(handler http.HandlerFunc) http.HandlerFunc {
-	// We don't have 10.1 deployed yet
-	// pluginID := p.API.GetPluginID()
-	pluginID := "co.parabol.action"
+	pluginID := p.API.GetPluginID()
 	path := "/plugins/" + pluginID
 	return func(w http.ResponseWriter, r *http.Request) {
 		r.URL.Path = path + r.URL.Path
@@ -132,7 +134,8 @@ func (p *Plugin) notify(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	channelID := r.PathValue("channelID")
+	vars := mux.Vars(r)
+	channelID := vars["channelID"]
 	userID, err1 := p.API.KVGet(botUserID)
 	if err1 != nil {
 		w.WriteHeader(http.StatusInternalServerError)
@@ -288,7 +291,8 @@ Endpoint for module federation, serves components from parabol.
 We cannot contact the Parabol instance directly from the webapp because of security settings on it.
 */
 func (p *Plugin) components(w http.ResponseWriter, r *http.Request) {
-	file := r.PathValue("file")
+	vars := mux.Vars(r)
+	file := vars["file"]
 	config := p.getConfiguration()
 	url := config.ParabolURL + "/components/" + file
 
@@ -316,7 +320,8 @@ func (p *Plugin) components(w http.ResponseWriter, r *http.Request) {
 }
 
 func (p *Plugin) parabolRedirect(w http.ResponseWriter, r *http.Request) {
-	path := r.PathValue("path")
+	vars := mux.Vars(r)
+	path := vars["path"]
 	config := p.getConfiguration()
 	url := config.ParabolURL + "/" + path
 	http.Redirect(w, r, url, http.StatusSeeOther)
@@ -354,14 +359,23 @@ func (p *Plugin) connect(c *Context, w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 }
 
+// initRouter initializes the HTTP router for the plugin.
+func (p *Plugin) initRouter() *mux.Router {
+	router := mux.NewRouter()
+
+	router.HandleFunc("/notify/{channelID}", p.fixedPath(p.notify)).Methods("POST")
+	router.HandleFunc("/login", p.authenticated(p.login)).Methods("POST")
+	router.HandleFunc("/graphql", p.graphql).Methods("POST")
+	router.HandleFunc("/connect", p.authenticated(p.connect)).Methods("POST")
+	router.HandleFunc("/config", p.authenticated(p.getConfig)).Methods("GET")
+	router.HandleFunc("/components/{file}", p.components).Methods("GET")
+	router.HandleFunc("/parabol/{path...}", p.parabolRedirect).Methods("GET")
+
+	return router
+}
+
+// ServeHTTP demonstrates a plugin that handles HTTP requests by greeting the world.
+// The root URL is currently <siteUrl>/plugins/com.mattermost.plugin-starter-template/api/v1/. Replace com.mattermost.plugin-starter-template with the plugin ID.
 func (p *Plugin) ServeHTTP(c *plugin.Context, w http.ResponseWriter, r *http.Request) {
-	mux := http.NewServeMux()
-	mux.HandleFunc("POST /notify/{channelID}", p.fixedPath(p.notify))
-	mux.HandleFunc("POST /login", p.authenticated(p.login))
-	mux.HandleFunc("POST /graphql", p.graphql)
-	mux.HandleFunc("POST /connect", p.authenticated(p.connect))
-	mux.HandleFunc("GET /config", p.authenticated(p.getConfig))
-	mux.HandleFunc("GET /components/{file}", p.components)
-	mux.HandleFunc("/parabol/{path...}", p.parabolRedirect)
-	mux.ServeHTTP(w, r)
+	p.router.ServeHTTP(w, r)
 }

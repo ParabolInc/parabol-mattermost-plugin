@@ -41,7 +41,8 @@ export default class Plugin {
 
       registry.registerChannelHeaderButtonAction(
         <img src={iconUrl}/>,
-        () => store.dispatch(toggleRHSPlugin),
+        () => store.dispatch(toggleRHSPlugin as any),
+        'Open Parabol Panel',
         'Open Parabol Panel',
       )
       console.error(`Failed to load components from Parabol to initialize plugin ${id}`, e)
