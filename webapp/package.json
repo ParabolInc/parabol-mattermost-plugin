@@ -73,7 +73,7 @@
   },
   "overrides": {
     "koa": ">=3.1.2",
-    "erialize-javascript": ">=7.0.3"
+    "serialize-javascript": ">=7.0.3"
   },
   "jest": {
     "testPathIgnorePatterns": [
