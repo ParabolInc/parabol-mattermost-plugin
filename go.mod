@@ -6,7 +6,7 @@ require (
 	github.com/lestrrat-go/jwx/v2 v2.1.6
 	github.com/mattermost/mattermost/server/public v0.2.0
 	github.com/pkg/errors v0.9.1
-	github.com/yaronf/httpsign v0.4.1
+	github.com/yaronf/httpsign v0.4.2
 )
 
 require (
@@ -46,7 +46,7 @@ require (
 	github.com/mattermost/gosaml2 v0.10.0 // indirect
 	github.com/mattermost/ldap v0.0.0-20231116144001-0f480c025956 // indirect
 	github.com/mattermost/logr/v2 v2.0.22 // indirect
-	github.com/mattermost/mattermost/server/v8 v8.0.0-20260225062821-7b5c34339d71 // indirect
+	github.com/mattermost/mattermost/server/v8 v8.0.0-20260303082521-27d054c4d39c // indirect
 	github.com/mattermost/xml-roundtrip-validator v0.1.0 // indirect
 	github.com/mattn/go-colorable v0.1.14 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect
@@ -66,10 +66,10 @@ require (
 	github.com/wiggin77/srslog v1.0.1 // indirect
 	golang.org/x/crypto v0.48.0 // indirect
 	golang.org/x/mod v0.33.0 // indirect
-	golang.org/x/net v0.50.0 // indirect
+	golang.org/x/net v0.51.0 // indirect
 	golang.org/x/sys v0.41.0 // indirect
 	golang.org/x/text v0.34.0 // indirect
-	google.golang.org/genproto/googleapis/rpc v0.0.0-20260223185530-2f722ef697dc // indirect
+	google.golang.org/genproto/googleapis/rpc v0.0.0-20260226221140-a57be14db171 // indirect
 	google.golang.org/grpc v1.79.1 // indirect
 	google.golang.org/protobuf v1.36.11 // indirect
 	gopkg.in/natefinch/lumberjack.v2 v2.2.1 // indirect
