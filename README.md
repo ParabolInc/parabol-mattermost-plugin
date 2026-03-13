@@ -12,6 +12,17 @@ Both need to be configured to use the same IdP and must not accept other login m
 - `SiteURL` If the `SiteURL` is not set correctly, some functions like notifications will not work.
 - SSO identity provider for both Mattermost and Parabol
 
+## Building
+```
+make
+```
+
+This will produce a single plugin file (with support for multiple architectures) for upload to your Mattermost server:
+
+```
+dist/co.parabol.action-0.8.0.tar.gz
+```
+
 ## Development
 
 - Create a `.env` file in the root of the project:
