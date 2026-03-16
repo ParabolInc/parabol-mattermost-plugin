@@ -1,14 +1,16 @@
 package main
 
 import (
-	"bufio"
-	"bytes"
 	"context"
+	"crypto/hmac"
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"strings"
 	"sync"
 	"time"
@@ -16,8 +18,6 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/mattermost/mattermost/server/public/model"
 	"github.com/mattermost/mattermost/server/public/plugin"
-
-	"github.com/yaronf/httpsign"
 )
 
 const (
@@ -119,23 +119,53 @@ func (p *Plugin) fixedPath(handler http.HandlerFunc) http.HandlerFunc {
 	}
 }
 
+// signChannelToken creates an HMAC-SHA256 token over channelID using ParabolToken as the key.
+// The resulting hex string is an opaque credential that Parabol stores per channel and sends
+// as a Bearer token when calling /notify. The Go plugin re-derives and compares to verify.
+func signChannelToken(secret []byte, channelID string) string {
+	mac := hmac.New(sha256.New, secret)
+	mac.Write([]byte(channelID))
+	return hex.EncodeToString(mac.Sum(nil))
+}
+
+// verifyChannelToken checks a Bearer token against the expected HMAC for channelID.
+func verifyChannelToken(secret []byte, channelID, token string) bool {
+	expected := signChannelToken(secret, channelID)
+	// Use hmac.Equal for constant-time comparison
+	expectedBytes, err := hex.DecodeString(expected)
+	if err != nil {
+		return false
+	}
+	tokenBytes, err := hex.DecodeString(token)
+	if err != nil {
+		return false
+	}
+	return hmac.Equal(expectedBytes, tokenBytes)
+}
+
+// notify handles POST /notify/{channelID}.
+// Auth: Bearer token in the Authorization header, verified as HMAC-SHA256(ParabolToken, channelID).
 func (p *Plugin) notify(w http.ResponseWriter, r *http.Request) {
 	config := p.getConfiguration()
-	privKey := []byte(config.ParabolToken)
-	verifier, err := NewVerifier(privKey)
-	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		_, _ = w.Write([]byte(`{"error": "Verify config error"}`))
-		return
-	}
-	if err1 := httpsign.VerifyRequest("parabol", *verifier, r); err1 != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		_, _ = w.Write([]byte(`{"error": "Verification error"}`))
-		return
-	}
 
 	vars := mux.Vars(r)
 	channelID := vars["channelID"]
+
+	// Verify Bearer token
+	authHeader := r.Header.Get("Authorization")
+	const bearerPrefix = "Bearer "
+	if !strings.HasPrefix(authHeader, bearerPrefix) {
+		w.WriteHeader(http.StatusUnauthorized)
+		_, _ = w.Write([]byte(`{"error": "Missing Bearer token"}`))
+		return
+	}
+	token := strings.TrimPrefix(authHeader, bearerPrefix)
+	if !verifyChannelToken([]byte(config.ParabolToken), channelID, token) {
+		w.WriteHeader(http.StatusUnauthorized)
+		_, _ = w.Write([]byte(`{"error": "Invalid token"}`))
+		return
+	}
+
 	userID, err1 := p.API.KVGet(botUserID)
 	if err1 != nil {
 		w.WriteHeader(http.StatusInternalServerError)
@@ -163,77 +193,70 @@ func (p *Plugin) notify(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (p *Plugin) login(c *Context, w http.ResponseWriter, r *http.Request) {
-	var variables json.RawMessage
-	if err := getJSON(r.Body, &variables); err != nil && err != io.EOF {
-		w.WriteHeader(http.StatusBadRequest)
-		return
-	}
-
+// auth handles GET /auth?state=<base64-encoded-state>.
+// It redirects the user to Parabol's OAuth2 authorize endpoint so they can log in.
+// After login, Parabol redirects to /mattermost/callback which postMessages the auth token
+// back to this opener window via the JS plugin.
+func (p *Plugin) auth(c *Context, w http.ResponseWriter, r *http.Request) {
 	config := p.getConfiguration()
-	url := config.ParabolURL + "/mattermost"
-	privKey := []byte(config.ParabolToken)
-	client, err := NewSigningClient(privKey)
-	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		_, _ = w.Write([]byte(`{"error": "Signing error"}`))
+	if config.OAuthClientID == "" {
+		w.WriteHeader(http.StatusServiceUnavailable)
+		_, _ = w.Write([]byte(`{"error": "OAuth not configured"}`))
 		return
 	}
 
-	query := struct {
-		Email string `json:"email"`
-	}{
-		Email: c.User.Email,
+	stateParam := r.URL.Query().Get("state")
+	if stateParam == "" {
+		w.WriteHeader(http.StatusBadRequest)
+		_, _ = w.Write([]byte(`{"error": "Missing state parameter"}`))
+		return
 	}
-	requestBody, err := json.Marshal(query)
+
+	redirectURI := config.ParabolURL + "/mattermost/callback"
+	q := url.Values{}
+	q.Set("client_id", config.OAuthClientID)
+	q.Set("redirect_uri", redirectURI)
+	q.Set("response_type", "code")
+	q.Set("scope", "graphql:persisted")
+	q.Set("state", stateParam)
+	authorizeURL := config.ParabolURL + "/oauth/authorize?" + q.Encode()
+
+	http.Redirect(w, r, authorizeURL, http.StatusFound)
+}
+
+// link handles GET /link?channelId=<id>.
+// It generates an HMAC-SHA256 channel token and returns it so the JS plugin can pass it
+// to Parabol's linkMattermostChannel mutation as the channelToken argument.
+func (p *Plugin) link(c *Context, w http.ResponseWriter, r *http.Request) {
+	config := p.getConfiguration()
+	channelID := r.URL.Query().Get("channelId")
+	if channelID == "" {
+		w.WriteHeader(http.StatusBadRequest)
+		_, _ = w.Write([]byte(`{"error": "Missing channelId"}`))
+		return
+	}
+
+	token := signChannelToken([]byte(config.ParabolToken), channelID)
+	body, err := json.Marshal(struct {
+		ChannelToken string `json:"channelToken"`
+	}{
+		ChannelToken: token,
+	})
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		_, _ = w.Write([]byte(`{"error": "Marshal error"}`))
 		return
 	}
-	res, err := client.Post(url, "application/json", bufio.NewReader(bytes.NewReader(requestBody)))
 	w.Header().Set("Content-Type", "application/json")
-	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		msg := fmt.Sprintf(`{"error": "Parabol server error", "originalError": "%v", "statusCode": "%v"}`, err, res.StatusCode)
-		_, _ = w.Write([]byte(msg))
-		return
-	}
-	defer func() { _ = res.Body.Close() }()
-	responseBody, err := io.ReadAll(res.Body)
-	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		_, _ = w.Write([]byte(`{"error": "Serialization error"}`))
-		return
-	}
-
-	if res.StatusCode != http.StatusOK {
-		w.WriteHeader(res.StatusCode)
-		msg := fmt.Sprintf(`{"error": "%s"}`, responseBody)
-		_, _ = w.Write([]byte(msg))
-		return
-	}
-
-	if _, err = w.Write(responseBody); err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		_, _ = w.Write([]byte(`{"error": "Response error"}`))
-		return
-	}
+	_, _ = w.Write(body)
 }
 
 func (p *Plugin) graphql(w http.ResponseWriter, r *http.Request) {
 	config := p.getConfiguration()
-	url := config.ParabolURL + "/graphql"
-	privKey := []byte(config.ParabolToken)
+	graphqlURL := config.ParabolURL + "/graphql"
 
-	client, err := NewSigningClient(privKey)
-	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		_, _ = w.Write([]byte(`{"error": "Signing error"}`))
-		return
-	}
 	defer func() { _ = r.Body.Close() }()
-	req, err1 := http.NewRequest("POST", url, r.Body)
+	req, err1 := http.NewRequest("POST", graphqlURL, r.Body)
 	if err1 != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		msg := fmt.Sprintf(`{"error": "Request error", "originalError": "%v"}`, err1)
@@ -257,6 +280,7 @@ func (p *Plugin) graphql(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	client := &http.Client{}
 	res, err2 := client.Do(req)
 	if err2 != nil {
 		w.WriteHeader(http.StatusInternalServerError)
@@ -294,10 +318,10 @@ func (p *Plugin) components(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	file := vars["file"]
 	config := p.getConfiguration()
-	url := config.ParabolURL + "/components/" + file
+	componentURL := config.ParabolURL + "/components/" + file
 
 	client := &http.Client{}
-	res, err := client.Get(url)
+	res, err := client.Get(componentURL)
 	if err != nil {
 		http.Error(w, "Server Error", http.StatusBadGateway)
 		msg := fmt.Sprintf(`{"error": "Request error", "originalError": "%v"}`, err)
@@ -323,8 +347,8 @@ func (p *Plugin) parabolRedirect(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	path := vars["path"]
 	config := p.getConfiguration()
-	url := config.ParabolURL + "/" + path
-	http.Redirect(w, r, url, http.StatusSeeOther)
+	redirectURL := config.ParabolURL + "/" + path
+	http.Redirect(w, r, redirectURL, http.StatusSeeOther)
 }
 
 func commandsEqual(a, b []SlashCommand) bool {
@@ -363,8 +387,12 @@ func (p *Plugin) connect(c *Context, w http.ResponseWriter, r *http.Request) {
 func (p *Plugin) initRouter() *mux.Router {
 	router := mux.NewRouter()
 
+	// Notifications: Parabol posts here with Bearer token auth (verified via ParabolToken HMAC)
 	router.HandleFunc("/notify/{channelID}", p.fixedPath(p.notify)).Methods("POST")
-	router.HandleFunc("/login", p.authenticated(p.login)).Methods("POST")
+	// OAuth: redirects to Parabol's /oauth/authorize so users can log in
+	router.HandleFunc("/auth", p.authenticated(p.auth)).Methods("GET")
+	// Channel linking: generates a signed channel token for the JS plugin to pass to Parabol
+	router.HandleFunc("/link", p.authenticated(p.link)).Methods("GET")
 	router.HandleFunc("/graphql", p.graphql).Methods("POST")
 	router.HandleFunc("/connect", p.authenticated(p.connect)).Methods("POST")
 	router.HandleFunc("/config", p.authenticated(p.getConfig)).Methods("GET")
