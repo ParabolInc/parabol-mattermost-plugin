@@ -16,15 +16,15 @@
     "node": ">=20.17.6"
   },
   "devDependencies": {
-    "@babel/cli": "7.16.8",
-    "@babel/core": "7.25.2",
-    "@babel/preset-env": "7.26.9",
-    "@babel/preset-react": "7.26.3",
-    "@babel/preset-typescript": "7.27.0",
-    "@babel/runtime": "7.27.0",
+    "@babel/cli": "7.29.7",
+    "@babel/core": "7.29.7",
+    "@babel/preset-env": "7.29.7",
+    "@babel/preset-react": "7.29.7",
+    "@babel/preset-typescript": "7.29.7",
+    "@babel/runtime": "7.29.7",
     "@mattermost/eslint-plugin": "1.1.0-0",
     "@mattermost/types": "^10.10.0",
-    "@types/jest": "27.4.0",
+    "@types/jest": "30.0.0",
     "@types/node": "20.17.6",
     "@types/react": "17.0.83",
     "@types/react-dom": "17.0.11",
@@ -53,15 +53,16 @@
     "eslint-plugin-react": "7.34.0",
     "eslint-plugin-react-hooks": "4.6.2",
     "identity-obj-proxy": "3.0.0",
-    "jest": "27.4.7",
+    "jest": "30.4.2",
+    "jest-environment-jsdom": "30.4.1",
     "jest-canvas-mock": "2.3.1",
-    "jest-junit": "13.0.0",
+    "jest-junit": "17.0.0",
     "style-loader": "3.3.1",
     "webpack": "5.105.0",
     "webpack-cli": "5.0.1"
   },
   "dependencies": {
-    "@module-federation/enhanced": "0.21.6",
+    "@module-federation/enhanced": "2.8.2",
     "core-js": "3.33.3",
     "mattermost-redux": "^10.10.0",
     "react": "17.0.2",
@@ -70,10 +71,6 @@
     "redux": "4.2.1",
     "styled-components": "5.3.6",
     "typescript": "^4.9.0"
-  },
-  "overrides": {
-    "koa": ">=3.1.2",
-    "serialize-javascript": ">=7.0.3"
   },
   "jest": {
     "testPathIgnorePatterns": [
@@ -95,7 +92,6 @@
       "^bundle-loader\\?lazy\\!(.*)$": "$1"
     },
     "moduleDirectories": [
-      "",
       "node_modules",
       "non_npm_dependencies"
     ],
@@ -112,6 +108,8 @@
     "setupFilesAfterEnv": [
       "<rootDir>/tests/setup.tsx"
     ],
-    "testURL": "http://localhost:8065"
+    "testEnvironmentOptions": {
+      "url": "http://localhost:8065"
+    }
   }
 }
