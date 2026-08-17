@@ -19,12 +19,18 @@ import (
 // If you add non-reference types to your configuration struct, be sure to rewrite Clone as a deep
 // copy appropriate for your types.
 type configuration struct {
-	// SiteURL is the URL at which your Mattermost instance is reachable. This is used to generate
-	// links to your plugin's settings page.
+	// ParabolURL is the URL of the Parabol instance to connect to.
 	ParabolURL string
 
-	// WebhookSecret is the secret used to validate incoming webhooks.
+	// ParabolToken is the plugin's own secret key. It is used to:
+	//   1. Sign channel tokens returned by GET /link (HMAC-SHA256 over channelID)
+	//   2. Verify those tokens on incoming POST /notify requests
+	// This secret is never shared with Parabol.
 	ParabolToken string
+
+	// OAuthClientID is the client_id registered in Parabol's OAuth2 server for this plugin.
+	// Required for the user authentication flow (GET /auth → Parabol login → /mattermost/callback).
+	OAuthClientID string
 }
 
 // Clone shallow copies the configuration. Your implementation may require a deep copy if
