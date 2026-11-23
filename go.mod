@@ -1,12 +1,12 @@
 module github.com/ParabolInc/parabol-mattermost-plugin
 
-go 1.26.8
+go 1.26.11
 
 require (
 	github.com/lestrrat-go/jwx/v2 v2.1.6
 	github.com/mattermost/mattermost/server/public v0.4.3
 	github.com/pkg/errors v0.9.1
-	github.com/yaronf/httpsign v0.4.2
+	github.com/yaronf/httpsign v0.5.2
 )
 
 require github.com/Masterminds/semver/v3 v3.5.0 // indirect
@@ -64,11 +64,11 @@ require (
 	github.com/vmihailenco/tagparser/v2 v2.0.0 // indirect
 	github.com/wiggin77/merror v1.0.5 // indirect
 	github.com/wiggin77/srslog v1.0.1 // indirect
-	golang.org/x/crypto v0.57.0 // indirect
-	golang.org/x/mod v0.41.0 // indirect
-	golang.org/x/net v0.58.0 // indirect
-	golang.org/x/sys v0.48.0 // indirect
-	golang.org/x/text v0.42.0 // indirect
+	golang.org/x/crypto v0.59.0 // indirect
+	golang.org/x/mod v0.42.0 // indirect
+	golang.org/x/net v0.63.0 // indirect
+	golang.org/x/sys v0.50.0 // indirect
+	golang.org/x/text v0.44.0 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20260706201446-f0a921348800 // indirect
 	google.golang.org/grpc v1.84.0 // indirect
 	google.golang.org/protobuf v1.36.11 // indirect
