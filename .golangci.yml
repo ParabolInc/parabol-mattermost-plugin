@@ -38,6 +38,9 @@ linters:
     unqueryvet:
       check-sql-builders: true
   exclusions:
+    # npm packages can ship Go sources (flatted does), and ./... picks them up
+    paths:
+      - webapp/node_modules
     rules:
       - path: server/configuration.go
         linters:
@@ -60,4 +63,7 @@ formatters:
     goimports:
       local-prefixes:
         - github.com/ParabolInc/parabol-mattermost-plugin
+  exclusions:
+    paths:
+      - webapp/node_modules
 
